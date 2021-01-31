@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="app">
+        <p>{{counter}}</p>
+        <p>{{fro}}</p>
+        <p v-text="counter"></p>
+        <input v-model="boo">
+        <p>{{boo}}</p>
+        <p v-html="desc"></p>
+        <button @click="log">log</button>
+    </div>
+    <!-- <script src="../node_modules/vue/dist/vue.min.js"></script> -->
+    <script src="./index.js"></script>
+    <script>
+        const app = new Vue({
+            el:'#app',
+            data() {
+                return {
+                    counter: 1,
+                    fro: 'fro',
+                    boo: 'boo',
+                    desc:'你好啊 <b style="color:red">中国</b>'
+                }
+            },
+            methods: {
+                log(){
+                    this.counter++
+                }
+            },
+        })
+        
+        // setInterval(()=>{
+        //     app.counter++
+        // },1000)
+    </script>
+</body>
+</html>
