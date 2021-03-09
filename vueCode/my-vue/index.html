@@ -7,37 +7,31 @@
 </head>
 <body>
     <div id="app">
-        <p>{{counter}}</p>
+        <!-- <p>{{counter}}</p>
         <p>{{fro}}</p>
         <p v-text="counter"></p>
         <input v-model="boo">
         <p>{{boo}}</p>
-        <p v-html="desc"></p>
-        <button @click="log">log</button>
+        <p v-html="desc"></p> -->
+        <!-- <button @click="log">log</button> -->
+        <div id="list">
+            <span class="item">111</span>
+            <span class="item">222</span>
+            <span class="item">333</span>
+        </div>
     </div>
     <!-- <script src="../node_modules/vue/dist/vue.min.js"></script> -->
     <script src="./index.js"></script>
     <script>
-        const app = new Vue({
-            el:'#app',
-            data() {
-                return {
-                    counter: 1,
-                    fro: 'fro',
-                    boo: 'boo',
-                    desc:'你好啊 <b style="color:red">中国</b>'
-                }
-            },
-            methods: {
-                log(){
-                    this.counter++
-                }
-            },
-        })
-        
-        // setInterval(()=>{
-        //     app.counter++
-        // },1000)
+        let observer = new MutationObserver((MutationRecord,MutationObserver)=>{console.log(MutationRecord,MutationObserver)})
+        observer.observe(document.querySelector('#list'), {attributes: true})
+        document.querySelector('#list').className='lists'
+        observer.disconnect()
+        console.log('change class list to lists');
+        document.querySelector('#list').className='listss'
+        console.log('change class list to listss');
+        document.querySelector('#list').className='listsss'
+        console.log('change class list to listsss');
     </script>
 </body>
 </html>
