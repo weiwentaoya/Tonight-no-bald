@@ -1,5 +1,7 @@
 <template>
   <div id="app">
+    <div>{{$store.state.count}}</div>
+    <button @click="$store.commit('add')">addCount</button>
     <div id="nav">
       <router-link to="/">Home</router-link> |
       <router-link to="/about">About</router-link>
@@ -7,7 +9,6 @@
     <router-view/>
   </div>
 </template>
-
 <style lang="scss">
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
