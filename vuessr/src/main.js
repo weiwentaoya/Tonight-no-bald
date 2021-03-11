@@ -26,4 +26,3 @@ export function createApp(context) {
   })
   return {app, router, store}
 }
-
