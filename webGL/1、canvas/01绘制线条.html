@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="cvs" style="border: 1px solid #4c00ff"></canvas>
+</body>
+<script>
+    const context = cvs.getContext('2d');
+    context.moveTo(30,30)
+    context.lineWidth="6"
+    context.strokeStyle="#ff0000"
+    context.lineTo(150,30)
+    context.stroke()
+    context.beginPath();
+
+    context.lineWidth="4"
+    context.strokeStyle="#333"
+    context.moveTo(150,30)
+    context.lineTo(100,90)
+    context.stroke()
+    context.beginPath();
+    
+    context.lineWidth="5"
+    context.strokeStyle="blue"
+    context.moveTo(100,90)
+    context.lineTo(30,30)
+    context.stroke()
+    
+</script>
+</html>

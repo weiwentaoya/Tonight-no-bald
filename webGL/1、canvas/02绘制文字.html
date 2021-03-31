@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            font-family: cursive;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="cvs" style="border: 1px solid #4c00ff"></canvas>
+    画布
+</body>
+<script>
+    const context = cvs.getContext('2d');
+
+    context.moveTo(30, 0);
+    context.lineTo(30, 120);
+    context.stroke();
+    context.beginPath();
+    context.moveTo(0, 30);
+    context.lineTo(120, 30);
+    context.stroke();
+    context.beginPath();
+    context.moveTo(0, 100);
+    context.lineTo(120, 100);
+    context.stroke();
+    
+    context.font='600 24px cursive';
+    context.textAlign='center';
+    context.textBaseline='middle';
+    context.fillText('画布', 30, 30, 200);
+    context.strokeText('画布', 30, 100, 200);
+    const imgUrl = cvs.toDataURL('image/png', 1);
+    console.log(imgUrl);
+    
+</script>
+</html>

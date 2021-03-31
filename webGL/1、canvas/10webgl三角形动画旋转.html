@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            font-family: cursive;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="cvs" width="200" height="200" style="border: 1px solid #4c00ff"></canvas>
+    画布
+</body>
+<script>
+
+    const gl = cvs.getContext('webgl');
+    var VSHADER_SOURCE = 
+        'attribute vec4 a_Position;' +
+        'uniform float u_CosB,u_SinB;'+
+        'void main(){' +
+        // 'gl_Position = vec4(0.0, 0.0, 0.1, 1.0);'+
+        'gl_Position.x = a_Position.x * u_CosB - a_Position.y * u_SinB;'+
+        'gl_Position.y = a_Position.x * u_SinB + a_Position.y * u_CosB;'+
+        'gl_Position.z = a_Position.z;'+
+        'gl_Position.w = 1.0;'+
+
+        '}'
+    var FSHADER_SOURCE = 
+        'void main(){' +
+        'gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);'+
+        '}'
+    var vertShader = gl.createShader(gl.VERTEX_SHADER)
+    gl.shaderSource(vertShader, VSHADER_SOURCE)
+    gl.compileShader(vertShader)
+
+    var fragShader = gl.createShader(gl.FRAGMENT_SHADER)
+    gl.shaderSource(fragShader, FSHADER_SOURCE)
+    gl.compileShader(fragShader)
+
+    var shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertShader)
+    gl.attachShader(shaderProgram, fragShader)
+
+    gl.linkProgram(shaderProgram)
+    gl.useProgram(shaderProgram)
+
+    var vertices = new Float32Array([0.0,0.5, -0.5,-0.5, 0.5,-0.5])
+    var vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+
+    var a_Position = gl.getAttribLocation(shaderProgram, 'a_Position')
+    gl.vertexAttribPointer(a_Position,2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(a_Position)
+    
+
+    function draw(ANGLE) {
+        var radian = Math.PI * ANGLE / 180.0
+        var cosB = Math.cos(radian)
+        var sinB = Math.sin(radian)
+
+        var u_CosB = gl.getUniformLocation(shaderProgram, 'u_CosB')
+        var u_SinB = gl.getUniformLocation(shaderProgram, 'u_SinB')
+
+        gl.uniform1f(u_CosB, cosB)
+        gl.uniform1f(u_SinB, sinB)
+
+        gl.drawArrays(gl.TRIANGLES, 0, 3)
+    }
+    
+    var ANGLE = 60.0
+    var cur_time = Date.now();
+    var ANGLE_STEP = -60.0
+    var ANGLE_INIT = 20.0
+    var ANGLE_ACT = 0.0
+    function animate(c1, a1, a2) {
+        var act_time = Date.now();
+        var dif_time = act_time-c1
+        c1 = act_time
+        var ANGLE_NEW = a1+a2*(dif_time / 1000.0)
+        return ANGLE_NEW %= 360
+    }
+    function tick() {
+        ANGLE_ACT = animate(cur_time, ANGLE_INIT, ANGLE_STEP)
+        console.log(ANGLE_ACT);
+        draw(ANGLE_ACT)
+        requestAnimationFrame(tick)
+    }
+    tick()
+</script>
+</html>

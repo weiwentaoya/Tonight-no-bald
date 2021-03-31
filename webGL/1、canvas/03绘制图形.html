@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            font-family: cursive;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="cvs" width="600" height="800" style="border: 1px solid #4c00ff"></canvas>
+    画布
+</body>
+<script>
+    const context = cvs.getContext('2d');
+    // // 1、描边绘制填充形成矩形
+    // context.rect(30, 30, 50, 40);
+    // context.stroke();
+    // context.fillStyle='#ff0000';
+    // context.fill();
+    
+    // // 2、一次绘制或填充一个矩形
+    // context.strokeRect(30, 100, 50, 40);
+    // context.fillRect(30, 100, 50, 40);
+    
+    // // 清楚矩形内部像素
+    // context.clearRect(40, 110, 20, 20);
+    // context.beginPath();
+
+    // // 绘制圆形
+    // context.arc(150, 30, 15, 0, Math.PI, false);
+    // context.stroke();
+    // context.fill();
+     
+    let img = new Image()
+    img.src="./wf.jpeg"
+    img.onload=()=>{
+        context.drawImage(img, 230, 80, 580, 580, 10, 10, 200, 200);
+    }
+    
+    
+    
+</script>
+</html>
