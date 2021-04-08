@@ -2,6 +2,8 @@ const canvas = document.querySelector("#cvs");
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 import {initShaders} from "./util/utils.js"
+import Compose from "./util/Compose.js"
+import Track from "./util/Track.js"
 const gl = canvas.getContext('webgl')
 
 gl.enable(gl.BLEND) //开启片元的颜色合成功能
@@ -40,32 +42,33 @@ initShaders(gl, VertexShader,FramnebtShader)
 
 // gl.drawArrays(gl.POINTS, 0, 1)
 
-const a_points = [
-    {x: -0.5, y: 0, z: 0, size: 10, color:{r:1 ,g:1, b:0, a:1}},
-    {x: 0.5, y: 0, z: 0, size: 24, color:{r:1 ,g:0, b:0, a:1}},
+const stars = [
+    // {x: -0.5, y: 0, z: 0, s: 10, a:1},
+    // {x: 0.5, y: 0, z: 0, s: 24, a:1},
 ]
 const a_Position = gl.getAttribLocation(gl.program,'a_Position')
 const a_PointSize = gl.getAttribLocation(gl.program,'a_PointSize')
 const u_fragColor = gl.getUniformLocation(gl.program,'u_fragColor')
+const compose = new Compose()
 
 function rand(points) {
     gl.clear(gl.COLOR_BUFFER_BIT)
-
+    
     points.forEach( item => {
         gl.vertexAttrib3f(a_Position, item.x, item.y, item.z)
-        gl.vertexAttrib1f(a_PointSize, item.size)
+        gl.vertexAttrib1f(a_PointSize, item.s)
         
         gl.uniform4f(
             u_fragColor, 
-            Math.abs(item.color.r),
-            Math.abs(item.color.g),
-            Math.abs(item.color.b), 
-            Math.abs(item.color.a)
+            0.87,
+            0.91,
+            1, 
+            Math.abs(item.a)
         )
         gl.drawArrays(gl.POINTS, 0, 1)
     })
+
 }
-rand(a_points)
 
 const {left, top, width, height} = canvas.getBoundingClientRect()
 canvas.addEventListener('click',({clientX, clientY})=>{
@@ -76,9 +79,29 @@ canvas.addEventListener('click',({clientX, clientY})=>{
     const [xBaseCenter, yBaseCenter] = [cssX- width/2, -(cssY-height/2)]
     const [x, y] = [xBaseCenter/ (width/2), yBaseCenter/(height/2)]
 
-    const size = Math.random()+10
+    const s = Math.random()*10+2
     const n = Math.random()
-    const color = {r:n, g:n, b:1, a:n}
-    a_points.push({x, y, z:0, size, color})
-    rand(a_points)
+    const a = 1
+    const obj = {x, y, z:0, s, a}
+    stars.push(obj)
+    // rand(stars)
+    const track = new Track(obj);
+    track.start = new Date();
+    track.timelen = 2000;
+    track.loop = true
+    track.keyMap = new Map([
+        [
+            'a',
+            [[500, a], [1000, 0], [1500, a]]
+        ]
+    ])
+    compose.add(track)
+    // compose.update(new Date())
+    // rand(stars)
 })
+!(function ani() {
+    compose.update(new Date())
+    rand(stars)
+    requestAnimationFrame(ani)
+})()
+

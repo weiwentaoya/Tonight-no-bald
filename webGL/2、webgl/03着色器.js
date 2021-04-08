@@ -7,7 +7,7 @@ const gl = canvas.getContext('webgl')
 const VertexShader =`
     void main(){
         //定位
-        gl_Position = vec4( 0, 0.5, 0, 1 );
+        gl_Position = vec4( 0.5, 0.5, 0.5, 1 );
         //大小
         gl_PointSize = 10.0;
     }

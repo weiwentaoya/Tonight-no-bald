@@ -28,9 +28,6 @@
     
   - 片元着色器:进行逐片元处理，如光照
  
-- drawArrays
-  - drawArrays只支持在一个进程内绘制，一旦进入到下一个进程后，会清除之前内容从头再来绘制
-   
 - 着色器语言
    - webgl的着色语言是GLSL ES语言
    - void main(){ .... } 是主题函数
@@ -59,6 +56,11 @@
     const a_Position = gl.getAttribLocation(gl.program,'a_Position')
     gl.vertexAttrib3f(a_Position, 0, 0.5, 0)
     ```
+
+- drawArrays
+  - drawArrays只支持在一个进程内绘制，一旦进入到下一个进程后，会清除之前内容从头再来绘制
+  - webgl的同步绘图现象，其实是由webgl底层内置的颜色缓冲区导致的，他在电脑里会占用一块内存，在使用webgl绘图的时候是先在颜色缓冲区中画出来，然后再绘制到页面，当每次线程开始的时候会重制颜色缓冲区。
+   
 - uniform 变量（限定颜色变量的存储限定符）
   - 在js中获取uniform 变量要用getUniformLocation()方法，传入程序对象和参数名
   - 在js中修改uniform 变量要用uniform4f()方法，传入的是变量名，以及r, g, b, a 四个颜色值
@@ -66,3 +68,5 @@
 - gl_PointCoord 片元在一个点中的位置
 - distance 计算两个点的距离
 - discard 丢弃，放弃渲染
+- gl.enable(gl.BLEND) 开启片元的颜色合成功能
+- gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)  设置片元的合成方式

@@ -24,22 +24,19 @@ const FramnebtShader = `
 
 initShaders(gl, VertexShader,FramnebtShader)
 
-gl.clearColor(0,0,0,1)
-
-
-
 const a_points = [
-    [ -0.5, 0, 0],
-    [ 0.5, 0, 0],
+    [ -0.5, 0, 0, 10],
+    [ 0.5, 0, 0, 14],
 ]
 function rand(points) {
+    gl.clearColor(0,0,0,1)
     gl.clear(gl.COLOR_BUFFER_BIT)
 
     points.forEach((item,index)=>{
         const a_Position = gl.getAttribLocation(gl.program,'a_Position')
         const a_PointSize = gl.getAttribLocation(gl.program,'a_PointSize')
         gl.vertexAttrib3f(a_Position,...item)
-        gl.vertexAttrib1f(a_PointSize,index)
+        gl.vertexAttrib1f(a_PointSize,item[3])
         gl.drawArrays(gl.POINTS, 0, 1)
     })
 }
@@ -54,7 +51,7 @@ canvas.addEventListener('click',({clientX, clientY})=>{
     const [xBaseCenter, yBaseCenter] = [cssX- width/2, -(cssY-height/2)]
     const [x, y] = [xBaseCenter/ (width/2), yBaseCenter/(height/2)]
 
-
-    a_points.push([ x, y, 0])
+    const size = Math.random()*30+10
+    a_points.push([ x, y, 0, size])
     rand(a_points)
 })
