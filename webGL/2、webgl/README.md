@@ -60,6 +60,13 @@
 - drawArrays
   - drawArrays只支持在一个进程内绘制，一旦进入到下一个进程后，会清除之前内容从头再来绘制
   - webgl的同步绘图现象，其实是由webgl底层内置的颜色缓冲区导致的，他在电脑里会占用一块内存，在使用webgl绘图的时候是先在颜色缓冲区中画出来，然后再绘制到页面，当每次线程开始的时候会重制颜色缓冲区。
+  - POINTS表示点、
+  - LINES表示单独线、
+  - LINE_STRIP表示线条、
+  - LINE_LOOP表示闭合线条、
+  - TRIANGLES表示单独三角面、
+  - TRIANGLE_STRIP表示三角带、
+  - TRIANGLE_FAN表示三角扇
    
 - uniform 变量（限定颜色变量的存储限定符）
   - 在js中获取uniform 变量要用getUniformLocation()方法，传入程序对象和参数名
@@ -70,3 +77,20 @@
 - discard 丢弃，放弃渲染
 - gl.enable(gl.BLEND) 开启片元的颜色合成功能
 - gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)  设置片元的合成方式
+- gl.createBuffer() 建立一个空的缓冲区对象(这里的缓冲区对象不会在下一个线程被重置)
+- gl.bindBuffer(target, buffer) 绑定缓冲区对象
+  - target要把缓冲区放在webgl系统中的什么位置
+  - buffer缓冲区
+
+- gl.bufferData(target, data, usage) 将数据写入缓冲区
+  - target 要把缓冲区放在webgl系统中的什么位置
+  - data 数据
+  - usage 向缓冲区写入数据的方式（gl.STATIC_DRAW表示一次性写入，着色器会多次绘制）
+- gl.vertexAttribPointer(local,size,type,normailzed,stride,offset)修改local变量的值
+  - local attribute变量
+  - size 顶点分量的个数
+  - type 数据类型，比如 gl.FLOAT 浮点型
+  - normailzed 是否将顶点归一
+  - stride 相邻两个顶点间的字节数，比如0表示紧挨着
+  - offset 从缓冲区的什么位置开始存储变量，比如0表示从头开始存储
+- gl.enableVertexAttribArray(attribute) 开启顶点数据的批处理功能

@@ -80,9 +80,7 @@ canvas.addEventListener('click',({clientX, clientY})=>{
     const [x, y] = [xBaseCenter/ (width/2), yBaseCenter/(height/2)]
 
     const s = Math.random()*10+2
-    const n = Math.random()
-    const a = 1
-    const obj = {x, y, z:0, s, a}
+    const obj = {x, y, z:0, s, a: 1}
     stars.push(obj)
     // rand(stars)
     const track = new Track(obj);
@@ -92,7 +90,7 @@ canvas.addEventListener('click',({clientX, clientY})=>{
     track.keyMap = new Map([
         [
             'a',
-            [[500, a], [1000, 0], [1500, a]]
+            [[500, 1], [1000, 0], [1500, 1]]
         ]
     ])
     compose.add(track)

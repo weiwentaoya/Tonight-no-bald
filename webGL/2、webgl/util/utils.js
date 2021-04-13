@@ -1,4 +1,15 @@
-
+export function getMousePosInWebgl(event, dom) {
+    const {clientX, clientY} = event
+    const {left, top, width, height} = dom.getBoundingClientRect()
+    const [cssX, cssY] =[
+        clientX-left,
+        clientY-top
+    ]
+    const [xBaseCenter, yBaseCenter] = [cssX- width/2, -(cssY-height/2)]
+    const [x, y] = [xBaseCenter/ (width/2), yBaseCenter/(height/2)]
+    return {x,y}
+    
+}
 export function initShaders(gl, vsSource, fsSource) {
     // 创建程序对象
     const program = gl.createProgram()
@@ -25,4 +36,11 @@ function loadShader(gl, type, source) {
     //编译着色器对象
    gl.compileShader(shader)
    return shader
+}
+export function glToCssPos({x,y},{width,height}) {
+    const [halfWidth, halfHeight] = [width/2, height/2]
+    return {
+        x: x*halfWidth,
+        y: -y*halfHeight
+    }
 }

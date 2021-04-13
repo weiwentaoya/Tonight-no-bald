@@ -15,7 +15,8 @@ export default class Track{
         if (loop) {
             time = time%timelen
         }
-
+        // console.log(keyMap.entries());
+        
         for (const [key, fms] of keyMap.entries()) {
             const last = fms.length-1
             // console.log(key, time , fms);
@@ -33,6 +34,7 @@ export default class Track{
     }
 }
 function getValBetweenFms(time,fms,last) {
+    
     for (let i = 0; i < last; i++) {
         const fm1 = fms[i];
         const fm2 = fms[i+1];

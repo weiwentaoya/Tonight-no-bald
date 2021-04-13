@@ -3804,3 +3804,458 @@ HTML5规范还为dataTransfer对象定义了以下方法
 - clearData(format) 清楚以特定格式存储的数据
 - setDragImage(element, x, y)允许指定拖动发生时显示在光标下的图片
 - types: 当前存储的数据类型列表
+
+### Notifications API
+
+Notifications API用于向用户显示通知。类似alert对话框Notifications API在Service Worker中非常有用。渐进Web应用通过触发通知可以在页面不活跃时向用户显示消息
+
+#### 通知权限
+
+⚠️本地调试不会出现通知，需要HTTPS
+
+Notifications API有被滥用的可能，因此默认会开启两项安全措施
+
+- 通知只能在运行在安全上下文的代码中被触发
+- 通知必须按照每个源的原则明确得到用户允许
+
+```js
+Notification.requestPermission().then(res=>{console.log(res)})
+//default表示允许 denied表示拒绝
+```
+
+如果用户拒绝授权，就无法通过编程方式挽回，因此不可能在触发授权提示
+
+```js
+const n = new Notification('这是一条通知信息',{
+  body:'bodybodybody', //自定义主题内容
+  image: "./wf.jpeg", //自定义图片
+  vibrate: true //是否震动
+})
+```
+
+#### Page Visibility API
+
+Page Visibility API旨在为开发者提供页面对用户是否可见的信息
+
+- document.visibilityState值
+  - 页面在后台标签页或浏览器中最小化了
+  - 页面在前台标签页中
+  - 实际页面隐藏，但对页面的预览时可见的
+  - 页面在屏外预渲染
+- visibilitychange事件，在文档隐藏可见切换时触发
+- document.hidder 布尔值，表示页面是否隐藏
+
+### Streams API
+
+Streams API是为了解决一个简单但又基础的问题而生的：Web应用如何消费有序的小信息快而不是大信息块
+
+- 大块数据可能不会一次性都可用。网络请求的响应就是一个典型的例子。网络负载是以连续信息包形式交付的，而流式处理可以让应用在数据一到达就使用，而不必等到所有的数据都加载完毕
+- 大块数据可能需要分小部分处理。视频处理、数据压缩、图像编码和JSON解析都是可以分成小部分处理，而不必等到所有数据都在内存中时再处理的例子
+
+⚠️**Fetch API已经得到所有主流浏览器支持，但Streams API则没有那么快得到支持**
+
+#### 理解流
+
+JavaScript中的流借用了管道相关的概念，因为原理是相同的Streams API定义了三种流
+
+- 可读流：可以通过某个公共接口读取数据块的流。数据在底部从底层源进入流，然后由消费者进行处理
+- 可写流：可以通过某个公共接口写入数据块的流。生产者将数据写入流，数据在内部传入底层数据槽
+- 转换流：有两种流组成，可写流用于接收数据，可读流用于输出数据，这两个流之间是转换程序，可以根据需要检查和修改流内容
+
+##### 块、内部队列、反压
+
+流的基本单位是块（chunk）块可是任意数据类型，但通常是定型数据。每个块都是离散的流片段，可以作为一个整体来处理。更重要的是，块不是固定大小的，也不一定按固定间隔到达。在理想的流当中，块的大小通常近似相同，到达的间隔也近似相同。不过好的流实现需要考虑边界情况
+
+由于数据进出速率不同，可能会出现不匹配的情况。为此流平衡可能出现如下三种情形
+
+- 流出口处处理数据的速度比入口提供数据的速度快。流出口经常空闲（可能意味着流入口效率较低），但只会浪费一点内存或计算资源，因此这种流的不平衡是可以接受的
+- 流入和流出均衡。这是理想状态。
+- 流入口提供数据的速度比出口处理数据的速度快，这种流不平衡是固有的问题。此时一定会在某个地方出现数据积压，流必须相应作出处理
+
+#### 可读流
+
+可读流是对底层数据源的封装。底层数据源可以将数据填充到流中，允许消费者通过流的公共接口读取数据
+
+##### ReadableStreamDefaultController & ReadableStreamDefaultReader
+
+```js
+ async function* ints() {
+   for (let i = 0; i < 5; i++) {
+     yield await new Promise((resolve)=> setTimeout(resolve, 1000, i))
+   }
+ }
+const readableStream = new ReadableStream({ //创建ReadableStream实例
+  async start(controller) {
+    console.log(controller);
+    for await(const chunk of ints()) {
+      controller.enqueue(chunk) //把值传入控制器
+    }
+    controller.close() //关闭流
+  }
+})
+const ReadableStreamDefaultReader = readableStream.getReader();//返回ReadableStreamDefaultReader实例
+(async ()=>{
+  while (true) {
+    const {done, value} =await ReadableStreamDefaultReader.read()//read()方法可以读取值
+    if (done) {
+      break
+    }else{
+      console.log(done, value);
+    }
+  }
+})()
+```
+
+#### 可写流
+
+```js
+async function* ints() {
+  for (let i = 0; i < 5; i++) {
+    yield await new Promise((resolve)=> setTimeout(resolve, 1000, i))
+  }
+}
+const writableStream = new WritableStream({ //创建WritableStream实例
+  write(value){
+    console.log(value);
+  }
+})
+const writeableStreamDefaultWrite = writableStream.getWriter();//返回writeableStreamDefaultWrite实例
+(async ()=>{
+  for await(const chunk of ints()) {
+    await writeableStreamDefaultWrite.ready;
+    writeableStreamDefaultWrite.write(chunk)
+  }
+  writeableStreamDefaultWrite.close()
+})()
+```
+
+#### 转换流
+
+转换流用于组合可读流和可写流。数据块在两个流之间的转换是通过transform()完成的
+
+```js
+ async function* ints() {
+   for (let i = 0; i < 5; i++) {
+     yield await new Promise((resolve)=> setTimeout(resolve, 1000, i))
+   }
+ }
+//转换流
+const {readable, writable} =  new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(chunk*2)
+  }
+})
+const ReadableStreamDefaultReader = readable.getReader();//返回ReadableStreamDefaultReader实例
+const writeableStreamDefaultWrite = writable.getWriter();//返回writeableStreamDefaultWrite实例
+//读取流
+(async ()=>{
+  while (true) {
+    const {done, value} =await ReadableStreamDefaultReader.read()//read()方法可以读取值
+    if (done) {
+      break
+    }else{
+      console.log(done, value);
+    }
+  }
+})()
+//写入流
+console.log(writeableStreamDefaultWrite);
+(async ()=>{
+  for await(let chunk of ints()) {
+    await writeableStreamDefaultWrite.ready;
+    writeableStreamDefaultWrite.write(chunk)
+  }
+  writeableStreamDefaultWrite.close()
+})()
+```
+
+#### 通过管道连接流
+
+流可以通过管道连接成一串。最常见的用例是使用pipeThrough()方法把ReadableStream接入TransformStream.
+
+从内部看，ReadableStream先把自己的值传给TransformStream内部的WritableStream，然后执行转换，接着转换后的值又在新的ReadableStream上出现。
+
+```js
+async function* ints() {
+  for (let i = 0; i < 5; i++) {
+    yield await new Promise((resolve)=> setTimeout(resolve, 1000, i))
+  }
+}
+
+const doublingStream =  new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(chunk*2)
+  }
+})
+
+const integerStream = new ReadableStream({
+  async start(controller){
+    for await(const chunk of ints()) {
+      controller.enqueue(chunk)
+    }
+    controller.close()
+  }
+})
+//通过管道连接流
+const pipedStream = integerStream.pipeThrough(doublingStream)
+//从连接流的输出获得读取器
+const pipedStreamDefaultReader = pipedStream.getReader()
+console.log(pipedStreamDefaultReader);
+(async ()=>{
+  while (true) {
+    const {done, value} =await pipedStreamDefaultReader.read()//read()方法可以读取值
+    if (done) {
+      break
+    }else{
+      console.log(done, value);
+    }
+  }
+})()
+        
+```
+
+### 计时API
+
+#### High Resolution Time API
+
+Date.now()方法只适用于日期时间相关操作,而且是不要求计时精度的操作
+
+```js
+function ints() {
+  for (let i = 0; i < 5; i++) {
+    setTimeout(()=>{}, 100, i)
+  }
+}
+const t0 = Date.now()
+ints()
+const t1 = Date.now()
+console.log(t1-t0); //0
+```
+
+ Date.now()只有毫秒级精度，如果ints执行的够快，则这两个时间戳的值会相等
+
+为了准确的度量时间的流逝，performance.now()
+
+```js
+function ints() {
+  for (let i = 0; i < 5; i++) {
+    setTimeout(()=>{}, 100, i)
+  }
+}
+const t0 = performance.now()
+ints()
+const t1 = performance.now()
+console.log(t1-t0);//0.12999982573091984
+```
+
+#### Performance Timeline API
+
+Performance Timeline API使用一套用于度量客户端延迟的工具扩展了performance接口。性能度量将会采用计算结束开始时间差的形式。这些开始和结束时间会被记录为DOMHighResTimeStamp值，而封装这个时间戳的对象是PerformanceEntry的实例
+
+浏览器会自动记录各种 PerformanceEntry 对象，而使用oerformance.mark()也可以记录自定义的PerformanceEntry对象。在一个执行上下文中被记录的所有性能条目可以通过performance.getEntries()获取
+
+### Web 组件
+
+这里所说的Web组建指的是一套用于增强DOM行为的工具，包括影子DOM、自定义元素和HTML模版。这一套浏览器API特别混乱
+
+- 并没有统一的 Web Components 规范：每个Web组件都在一个不同的规范中定义
+- 有些Web组件如影子DOM和自定义元素，已经出现了想后不兼容的版本问题
+- 浏览器实现及其不一致
+
+由于存在这些问题，因此使用Web组件通常需要引入一个Web组件库，比如Polymer。这种库可以作为腻子脚本，模拟浏览器缺失的Web组件
+
+#### HTML模版
+
+在Web组件之前，一直缺少基于HTML解析构建DOM子树，然后在需要时再把这个子树渲染出来的机制。
+
+两种间接方案
+
+- innerHTML 把标记字符串转换为DOM元素，但这种方式存在严重的安全隐患
+- document.createElement()构建每个元素，然后逐个添加，这样做特别麻烦
+
+<template>标签正是为这个目的而生的
+
+```html
+<template id="foo">
+  <p>这里是 template</p>
+</template>
+```
+
+##### DocumentFragment
+
+在浏览器渲染时，上面的文本不会被渲染到页面上。因为<template>的内容不属于活动文档，所以document.querySelector()等DOM查询方法不会发现其中的p标签。这是因为p标签存在于一个包含在HTML模版中的DocumentFragment节点内
+
+在浏览器开发中工具检查网页内容时，可以看到<template>中的DocumentFragment
+
+```html
+<template id="foo">
+  #document-fragment
+  <p>这里是 template</p>
+</template>
+<script>
+  const fragment = document.querySelector("#foo").content  //#document-fragment
+  document.querySelector("p") //null
+  fragment.querySelector("p") //<p>这里是 template</p>
+</script>
+
+```
+
+此时的DocumentFragment就像一个对应子树的最小化document对象。
+
+DocumentFragment也是批量向HTML中添加元素的高效工具。
+
+比如，我们想以最快的方式给某个HTML元素添加多个子元素。如果连续调用documen.appendChild()，则不仅费时，还会导致多次布局重排，而使用DocumentFragment可以一次性添加所有的子节点，最多只会有一次布局重排
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <template id="foo">
+          </template>
+        <div id="app">
+        </div>
+    </body>
+    <script>
+        const fragment = document.querySelector("#foo").content 
+        for (let i = 0; i < 10; i++) {
+            const element = document.createElement('p')
+            element.appendChild(document.createTextNode(i))
+            fragment.appendChild(element)
+        }
+        console.log(fragment.children.length); //10
+        app.appendChild(fragment)
+        console.log(fragment.children.length); //0
+    </script>
+</html>
+```
+
+##### template标签
+
+上面过程同样也可以用template标签来实现
+
+如果模版想要复制，可以使用importNode()方法克隆DocumentFragment
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <template id="foo">
+            <p>0</p>
+            <p>1</p>
+            <p>2</p>
+            <p>3</p>
+            <p>4</p>
+            <p>5</p>
+            <p>6</p>
+            <p>7</p>
+            <p>8</p>
+            <p>9</p>
+        </template>
+        </template>
+        <img id="wf" src="./wf.jpeg" width="200">
+        <div id="app">
+        </div>
+    </body>
+    <script>
+        const fragment = document.querySelector("#foo").content 
+        setTimeout(()=>{
+            app.appendChild(fragment)
+        },1000)
+    </script>
+</html>
+```
+
+#### 影子DOM
+
+概念上讲，影子DOM Web组件相当直观，通过它可以将一个完整的DOM树作为节点添加到父DOM树。这样可以实现DOM封装，意味着CSS样式和CSS选择符可以限制在影子DOM子树而不是整个顶级DOM树中。
+
+影子DOM与HTML模版相似,因为他们都是类似document的结构，并允许与顶级DOM有一定程度的分离。不过，影子DOM与HTML模版还是有区别的，主要表现在影子DOM的内容会实际渲染到页面上，而HTML模版的内容不会
+
+##### 理解影子DOM
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        .red{
+           color: red;
+        }
+        .green{
+           color: green;
+        }
+        .blue{
+           color: blue;
+        }
+    </style>
+    <body>
+        <div class="red">
+            <p>red rext</p>
+        </div>
+        <div class="green">
+            <p>green rext</p>
+        </div>
+        <div class="blue">
+            <p>blue rext</p>
+        </div>
+    </body>
+</html>
+```
+
+为了给每个子树应用唯一样式，需要给每个子树一个唯一的类名，尽管知道这些样式与其他地方无关，但是css样式还是会应用到整个DOM。为此要保持CSS选择符足够特别，以防这些样式渗透到其他地方，但这也仅是一个折中的办法而已。理想情况下，应该能够把CSS限制在使用他们的DOM上：这正是DOM最初的使用场景
+
+##### 创建影子DOM
+
+attachShadow()方法创建并添加给有效HTML元素。容纳影子DOM的元素被称为影子宿主。影子DOM的根节点被称为影子根
+
+attachShadow()方法需要一个shadowRootInit对象，返回影子DOM实例。shadowRootInit对象包含一个mode属性，值为'open','closed'.对'open'影子dom的引用可以通过shadowRoot属性在HTML元素上获得，而对'closed'影子DOM的引用无法这样获取
+
+##### 使用影子DOM
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+    </body>
+    <script>
+        for (const color of ['red','green','blue']) {
+            const div = document.createElement('div')
+            document.body.appendChild(div)
+            const shadowDOM = div.attachShadow({mode: 'open'})
+            shadowDOM.innerHTML = `
+                <p> this is ${color}</p>
+                <style>
+                p{
+                    color: ${color}
+                }    
+                </style>
+            `
+        }
+    </script>
+</html>
+```
+
+虽然使用相同的选择符应用了3种不同的颜色，但每个选择符只会把样式应用到他们所在的影子DOM上
