@@ -4181,8 +4181,6 @@ DocumentFragment也是批量向HTML中添加元素的高效工具。
 
 影子DOM与HTML模版相似,因为他们都是类似document的结构，并允许与顶级DOM有一定程度的分离。不过，影子DOM与HTML模版还是有区别的，主要表现在影子DOM的内容会实际渲染到页面上，而HTML模版的内容不会
 
-##### 理解影子DOM
-
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -4222,13 +4220,11 @@ DocumentFragment也是批量向HTML中添加元素的高效工具。
 
 为了给每个子树应用唯一样式，需要给每个子树一个唯一的类名，尽管知道这些样式与其他地方无关，但是css样式还是会应用到整个DOM。为此要保持CSS选择符足够特别，以防这些样式渗透到其他地方，但这也仅是一个折中的办法而已。理想情况下，应该能够把CSS限制在使用他们的DOM上：这正是DOM最初的使用场景
 
-##### 创建影子DOM
+
 
 attachShadow()方法创建并添加给有效HTML元素。容纳影子DOM的元素被称为影子宿主。影子DOM的根节点被称为影子根
 
 attachShadow()方法需要一个shadowRootInit对象，返回影子DOM实例。shadowRootInit对象包含一个mode属性，值为'open','closed'.对'open'影子dom的引用可以通过shadowRoot属性在HTML元素上获得，而对'closed'影子DOM的引用无法这样获取
-
-##### 使用影子DOM
 
 ```html
 <!DOCTYPE html>
@@ -4259,3 +4255,324 @@ attachShadow()方法需要一个shadowRootInit对象，返回影子DOM实例。s
 ```
 
 虽然使用相同的选择符应用了3种不同的颜色，但每个选择符只会把样式应用到他们所在的影子DOM上
+
+#### 自定义元素
+
+浏览器会尝试将无法识别的元素作为通用元素整合进DOM。当然，这些元素默认不会任何通用HTML元素不能做的事，但是会变成一个HTMLElement实例
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        
+    </style>
+    <body>
+        <div id="app">
+            
+        </div>
+    </body>
+    <script>
+        app.innerHTML = `
+            <x-foo>
+                Foo   
+            </x-foo>
+        `
+       console.log(document.querySelector('x-foo') instanceof HTMLElement); //true
+    </script>
+</html>
+```
+
+自定义元素在此基础上更进一步。利用自定义元素，可以在自定义标签出现时为它定义复杂的行为，同样也可以在DOM中将其纳入元素生命周期管理。自定义元素要使用全局属性customElements，这个属性会返回CustomElementRegistry对象。
+
+调用customElements.define()方法可以创建自定义元素
+
+```js
+class FooElement extends HTMLElement {
+  constructor(){
+    super()
+    console.log('x-foo');
+  }
+}
+customElements.define('x-foo', FooElement)
+app.innerHTML = `
+  <x-foo>  Foo  </x-foo>
+  <x-foo>  Foo  </x-foo>
+`
+//'x-foo'
+//'x-foo'
+```
+
+**⚠️在自定义元素的构造函数中必须始终先调用super()。如果元素继承了HTMLElement或相似类型而不会覆盖构造函数，则没有必要调用super()，因为原型构造函数默认会做这件事。很少有创建自定义元素而不继承HTMLElement的。**
+
+##### 添加Web组件内容
+
+给自定义元素添加影子DOM并将内容添加到这个影子DOM中
+
+```js
+class FooElement extends HTMLElement {
+  constructor(){
+    super()
+    this.attachShadow({mode: 'open'})
+    this.shadowRoot.innerHTML = '这里是影子DOM'
+  }
+}
+customElements.define('x-foo', FooElement)
+app.innerHTML = `
+<x-foo> </x-foo>
+`
+// <div id="app">
+//     <x-foo> 
+//      #shadow-root (open)
+//      "这里是影子DOM"
+//     </x-foo>
+// </div>
+```
+
+##### 使用自定义元素生命周期方法
+
+- constructor() 在创建元素实例或将已有DOM元素升级为自定义元素时调用
+- connectedCallnack() 在每次将这个自定义元素添加到DOM中时调用
+- disconnectedCallback()在每次将这个自定义元素实例从DOM中移除时调用
+- attributeChangedCallback() 在每次可观察属性值发生变化时调用。在元素实例初始化时，初始值的定义也算是一次变化
+- adoptedCallback() 在通过document.adoptNode()将这个自定义元素实例移动到新文档对象时调用
+
+```js
+class FooElement extends HTMLElement {
+  constructor(){
+    super()
+    console.log('ctor');
+  }
+  connectedCallback(){
+    console.log('connected');
+  }
+  disconnectedCallback(){
+    console.log('disconnected');
+  }
+}
+customElements.define('x-foo', FooElement)
+
+const foo = document.createElement('x-foo') //ctor
+app.appendChild(foo) //connected
+app.removeChild(foo) //disconnected
+
+```
+
+##### 反射自定义元素属性
+
+自定义元素即使DOM实体又是JavaScript对象，因此两者之间应该同步变化
+
+```js
+class FooElement extends HTMLElement {
+  constructor(){
+    super()
+    this.bar = true
+  }
+  get bar(){
+    console.log(this.getAttribute('bar'));
+    return this.getAttribute('bar')
+  }
+  set bar(value){
+    console.log(value);
+    this.setAttribute('bar', value)
+  }
+}
+customElements.define('x-foo', FooElement)
+
+// const foo = document.createElement('x-foo') 
+// app.appendChild(foo) 
+app.innerHTML=`
+<x-foo bar="foo">foo</x-foo>
+` //true
+console.log(app.innerHTML); // <x-foo bar="true">foo</x-foo>
+```
+
+从DOM到JavaScript对象需要给相应的属性添加监听器。为此，可以使用observedAttributes()获取函数让自定义元素的属性值每次改变时都调用attributeChangedCallback()
+
+```js
+class FooElement extends HTMLElement {
+  constructor(){
+    super()
+  }
+  get bar(){
+    return this.getAttribute('bar')
+  }
+  set bar(value){
+    this.setAttribute('bar', value)
+  }
+  static get observedAttributes(){
+    return ['bar']
+  }
+  attributeChangedCallback(name, oldv, newv){
+    if (oldv !== newv) {
+      console.log(oldv,'=>', newv);
+      this[name] = newv
+    }
+  }
+}
+customElements.define('x-foo', FooElement)
+
+app.innerHTML=`
+<x-foo bar="false">foo</x-foo>
+` //1⃣️
+btn.addEventListener('click',()=>{
+  document.querySelector('x-foo').setAttribute('bar', true)//2⃣️
+})
+//null "=>" "false"
+//false => true
+```
+
+### Web Cryptography API
+
+Web Cryptography API描述了一套密码学工具，规范了JavaScript如何以安全和符合规范的方式实现加密。这些工具包括生成、使用、应用加密密钥对，加密和解密消息，以及可靠地生成随机数
+
+#### 生成随机数
+
+在生成随机值时，一般用Math.random().这个方法在浏览器是以伪随机数生成器(PRNG)方式实现的。所谓**伪**值的是生成值的过程不是真的随机。PRNG生成的值只是模拟了随机的特性。
+
+密码学安全伪随机数生成器(CSPRNG)额外增加了一个熵作为输入，例如测试硬件时间或其他无法预计行为的系统特性。这样一来，计算速度明显比常规PRNG慢很多，但CSPRNG生成的值就很难预测，可以用于加密了。
+
+这个CSPRNG可以通过crypto.getRandomValues()在全局Crypto对象上访问。与Math.random()返回一个介于0和1之间的浮点数不同，getRandomValues()会把随机值写入作为参数传给它的定型数组。定型数组的类不重要，因为底层缓冲区会被随机的二进制位填充
+
+```js
+const array = new Uint8Array(1)
+for (let i = 0; i < 5; i++) {
+  console.log(crypto.getRandomValues(array));
+}
+//Uint8Array [51]
+//Uint8Array [53]
+//Uint8Array [167]
+//Uint8Array [199]
+//Uint8Array [153]
+```
+
+getRandomValues()最多生成2的16次方字节（65 536）,超出则会抛出错误
+
+```js
+const array = new Uint8Array(2**16)
+console.log(crypto.getRandomValues(array)); //Uint8Array(65536) [...]
+const array1 = new Uint8Array((2**16)+1)
+console.log(crypto.getRandomValues(array1)); //Error
+```
+
+下面可以生成随机数
+
+```js
+function randomFloat() {
+  const array = new Uint32Array(1)
+  const maxUnit32 = 0xFFFFFFFF;
+  return crypto.getRandomValues(array)[0]/maxUnit32
+}
+console.log(randomFloat());
+```
+
+#### 使用SubtleCrypto对象
+
+Web Cryptography API重头特性都暴漏在SubtleCrypto对象上，可以通过window.crypto.subtle访问
+
+**⚠️SubtleCrypto对象只能在安全上下文（https）中使用。在不安全的上下文中，window.crypto.subtle属性是undefined。**
+
+这个对象包含一组方法，用于执行常见的密码学功能，如加密、散列、签名、生成密钥。因为所有密码学操作都在原始二进制数据上执行，所以SubtleCrypto的每个方法都要用到ArrayBuffer和ArrayBufferView类型。由于字符串是密码学操作的重要场景，因此TextEncoder和TextDecoder是经常与SubtleCrypto一起使用的类，用于实现二进制数据与字符串之间的相互转换。
+
+##### 生成密码学摘要
+
+计算数据的密码学摘要是非常常用的密码学操作。这个规范支持4种摘要算法：SHA-1 和三种SHA-2
+
+- SHA-1: 架构类似MD5的散列函数，接受任意大小的输入，生成160位消息列表。由于容易收到碰撞攻击，这个算法已经不在安全
+- SHA-2: 构建与相同耐碰撞单向压缩函数之上的一套散列函数。规范支持其中3种SHA-256、SHA-384、SHA-512.生成的消息摘要可以是256位（SHA-256）、是384位（SHA-384）、是512位（SHA-512）。这个算法被认为是安全的，广泛应用于很多领域和协议，包括TLS、PGP、加密货币（如比特币）
+
+SubtleCrypto.digest()方法用于生成摘要。要使用的散列算法通过字符串SHA-1、SHA-256、SHA-384、SHA-512指定
+
+通常在使用时，二进制的消息摘要会转换为十六进制字符串格式。通过将二进制数据按8位进行分割，然后再调用toString(16)就可以把任何数组缓冲区转换为十六进制字符串
+
+```js
+(
+  async function () {
+    const textEncoder = new TextEncoder()
+    const message = textEncoder.encode('foo')
+    console.log(message);
+    const messageDigest =await window.crypto.subtle.digest('SHA-256', message)
+    console.log(new Uint32Array(messageDigest));
+    //Uint32Array(8) [1806968364, 2412183400, 1011194873, 876687389, 1882014227, 2696905572, 2287897337, 2934400610]
+    const hexDifest = Array.from(new Uint8Array(messageDigest))
+    .map(x=>x.toString(16).padStart(2,'0')).join('')
+    console.log(hexDifest);
+    //2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae
+  }
+)()
+```
+
+##### CryptoKey算法
+
+如果没了密钥，那密码学也就没有什么意义了。SubtleCrypto对象使用CryptoKey类的实例来生成密钥。CryptoKey类支持多种加密算法，允许控制密钥抽取和使用
+
+##### 生成CryptoKey
+
+SubtleCrypto.generateKey()方法可以生成随机CryptoKey，这个方法返回一个契约，解决为一个或多个CryptoKey实例。使用时需要给这个方法传入一个指定目标算法的参数对象、一个密钥是否可以从CryptoKey对象中提取出来的布尔值，以及一个表示这个密钥可以与那个SubtleCrypto 方法一起使用的字符串数组（keyUsages）
+
+```js
+(
+  async function () {
+    const params ={
+      name: 'AES-CTR',
+      length: 128
+    }
+    const keyUsages = ['encrypt','decrypt']
+    const key = await crypto.subtle.generateKey(params, false , keyUsages)
+    console.log(key);
+    //CryptoKey {type: "secret", extractable: false, algorithm: {…}, usages: Array(2)}
+  }
+)()
+```
+
+## 错误处理与调试
+
+### 错误处理
+
+有一个良好的错误处理策略可以让用户知道到底发生了什么。为此，必须理解各种捕获和处理错误的方式
+
+#### try/catch语句
+
+```js
+try {
+  //可能出错的代码
+  
+} catch (error) {
+  //出错时要做什么
+}
+```
+
+如果try块中有代码发生错误，代码会立即推出执行，并跳到catch块中.catch块此时接受到一个对象，该对象包含发生错误的相关信息。错误对象中暴露的实际信息因浏览器而异，但至少包含错误信息的message属性
+
+##### finally语句
+
+try/catch语句中可选的finally语句始终执行，不论是try块中的代码是否执行错误
+
+```js
+function testFinally() {
+  try {
+    return 1
+  } catch (error) {
+    return 2
+  }finally {
+    return 0
+  }
+}
+console.log(testFinally());
+```
+以上代码按道理不出错返回1，出错返回2，但是finally的存在导致这个函数始终会返回0
+
+##### try/catch的用法
+
+当try/catch中发生错误时，浏览器会认为错误被处理了，因此就不会使用机制报告错误。
+try/catch最好用在自己无法控制的错误上。如果明确知道自己的代码会发生某种错误，那么久不适合使用try/catch
+
+#### 抛出错误
