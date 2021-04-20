@@ -2701,7 +2701,7 @@ DOM2模块定义了两个用于辅助顺序的遍历DOM结构。这两个类型 
   const whatToShow = NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT
   
 - filter NodeFilter对象或函数，表示是否接受或跳过特定节点
-   
+  
    - NodeFilter.FILTER_SKIP 表示跳过节点，访问下一个节点
    - NodeFilter.FILTER_ACCEPT 
    
@@ -4576,3 +4576,586 @@ console.log(testFinally());
 try/catch最好用在自己无法控制的错误上。如果明确知道自己的代码会发生某种错误，那么久不适合使用try/catch
 
 #### 抛出错误
+
+与try/catch语句对应的一个机制是 throw 操作符，用于在任何时候抛出自定义错误.不限制数据类型
+
+```js
+throw 12345
+throw "hello word"
+throw true
+throw {name: "javaScript"}
+```
+
+#### error事件
+
+任何没有被try/catch语句处理的错误都会在window对象上触发error事件。
+
+```js
+window.onerror = (message, url, line)=>{
+  console.log(message, url, line);
+  //Uncaught ReferenceError: a is not defined 
+  //file:///Users/weiwentao/studyEveryday/test/demo.html 
+  //25
+  return false
+}
+console.log(a);
+```
+
+**⚠️浏览器在使用这个事件处理错误时存在明显差异。在IE中发生error事件时，正常代码会继续执行，所有变量和数据会保持，且可以在onerror事件处理程序中访问。在Firefox中，正常代码的执行会终止，错误发生之前的所有变量和数据会被销毁，导致很难分析处理错误**
+
+
+
+
+
+## 变量、作用域、内存
+
+JavaScript变量是松散类型的，而且变量不过就是特定时间点一个特定值的名称而已。由于没有规则定义变量包含什么数据类型，变量的值和数据类型在脚本生命周期内可以改变。
+
+### 原始值与引用值
+
+ECMAScript变量包含两种不同类型的数据
+
+- 原始值
+
+  原始值就是最简单的数据
+
+  Undefined、Null、Boolean、Number、String、Symbol
+
+- 引用值
+
+  引用值是由多个值构成的对象
+
+  引用值是保存在内存中的对象。在操作对象时，实际上操作的是对该对象的引用而非实际的对象本身。为此，保存引用值的变量时按引用访问的
+
+#### 动态属性
+
+原始值和引用值的定义方式类似，都是创建了一个变量，然后赋值。不过在变量保存了这个值之后，可以对这个值做什么，则大有不同
+
+⚠️原始类型的初始化可以只使用原始字面量形式。如果使用的是new关键字，则JavaScript会创建一个Object类型的实例
+
+```js
+let name1 = 'foo'
+let name2 = new String('foo')
+name1.age = 18
+name2.age = 18
+console.log(name1.age); //undefined
+console.log(name2.age); //18
+console.log(typeof name1); //string
+console.log(typeof name2); //object
+```
+
+#### 复制值
+
+再通过变量把一个原始值赋值到另一个变量时，原始值会被复制到新变量的位置
+
+在把引用值从一个变量赋值给另一个变量时，存储在变量中的值也会被复制到新变量所在的位置，区别在于，这里复制的值实际上是一个指针，它指向存储在堆内存中的对象。操作完成后，两个变量实际上指向同一个对象，因此一个对象上的变化会在另一个对象上反应出来
+
+```js
+ let obj1 = {}
+ let obj2 = obj1
+ obj1.name = 'foo'
+console.log(obj2);//{name: "foo"}
+```
+
+#### 传递参数
+
+ECMAScript中所有函数的参数都是按值传递的。这意味着函数外的值会被复制到函数内部的参数中，就像一个变量复制到另一个变量一样。
+
+```js
+function addTen(num) {
+  num+=10
+  return num
+}
+let count = 20
+let result = addTen(count)
+console.log(count); //20
+console.log(result); //30
+
+
+
+function setName(obj) {
+  obj.name = 'foo'
+  return obj
+}
+let person = new Object()
+let res = setName(person)
+console.log(res); //{name: "foo"}
+console.log(person); //{name: "foo"}
+```
+
+#### 确定类型
+
+typeof是判断一个变量是否为字符串、数值、布尔值、undefined的最好方式。
+
+**typeof判断 null、array、object会返回object**
+
+**typeof判断函数、正则会返回'function'（任何实现内部[[call]]方法的对象）**
+
+typeof虽然对原始值很有用，但他对引用值的用处不大所以用 instanceof
+
+```js
+const name = 'foo'
+const person = {}
+const color = []
+const pattern = /\./
+console.log(name instanceof Object); //false
+console.log(person instanceof Object); //true
+console.log(color instanceof Array); //true
+console.log(pattern instanceof RegExp); //true
+```
+
+### 执行上下文与作用域
+
+变量或函数的上下文决定了它们可以访问那些数据，以及他们的行为。每个上下文都有一个关联的变量对象，而这个上下文中定义的所有变量和函数都存在于这个对象上。虽然无法通过代码访问变量对象，但后台处理数据会用到它。
+
+通过var定义的全局变量和函数都会成为window对象的属性和方法。使用let和const的顶级声明不会定义在全局上下文中，但在作用域链解析上效果是一样的。上下文在其所有代码执行完毕后会被销毁
+
+每个函数调用都有自己的上下文。当代码执行流进入函数时，函数的上下文被推倒一个上下文栈上。在函数执行完之后，上下文栈会弹出该函数的上下文。将控制器返还给之前的执行上下文。
+
+上下文中的代码在执行的时候，会创建变量对象的一个作用域链。这个作用域链决定了各级上下文中的代码在访问变量和函数时的顺序。代码正在执行的上下文的变量对象始终位于作用域链的最前端。如果上下文是函数，则其活动对象用作变量对象，活动对象最初只有一个定义变量：arguments(全局上下文中没有这个变量)。
+
+#### 作用域链增强
+
+执行上下文主要有全局上下文和函数上下文两种（eval()调用内部存在第三种上下文）。但有其他方式来增强作用域链。某些语句会导致在作用域链前端临时添加一个上下文，这个上下文在代码执行后会被删除。通常在两种情况下会出现这个现象
+
+- try/catch
+- with语句
+
+这两种情况下，都会在作用域链前端添加一个变量对象。对with语句来说，会向作用域链前端添加指定的对象；对catch语句而言，则会创建一个新的变量对象，这个变量对象会包含要抛出的错误对象的声明
+
+```js
+function buildUrl() {
+  let qs = "?debug=true"
+  with(location){
+    var url = href + qs
+    }
+  return url
+}
+console.log(buildUrl());
+```
+
+#### 变量声明
+
+var 和 ES6新增let、const
+
+##### 使用var的函数作用域声明
+
+在使用var声明时，变量会被自动添加到最接近的上下文
+
+```js
+var name = "jake"
+
+//等价于
+
+name = "jake"
+
+var name //默认变量会被提升到上下文顶部
+```
+
+##### 使用let的快级作用域
+
+let的作用域是块级的。块级作用域由最近的一对花括号{ }界定。
+
+```js
+if (true) {
+   let a = 'a'
+}
+console.log(a); //Uncaught ReferenceError: a is not defined a没有定义
+```
+
+##### const 的常量声明
+
+const声明的变量必须同时初始化这个值。一经声明，在其生命周期的任何时候都不能再重新赋值
+
+⚠️**如果想让对象不能修改可以使用Object.freeze()**
+
+##### 标示符查找
+
+在特定的上下文中为读取或写入而引用一个标识符时，必须通过搜索确定这个表示符表示什么。搜索开始于作用域链前端，以给定的名称搜索对应的标识符。如果在局部上下文中找到该标识符，则搜索停止，变量确定，如果没有找到，则继续沿着作用域链搜索。(⚠️作用域链中的对象也有一个原型链，因此搜索可能涉及每个对象的原型链)这个过程一直持续到搜索至全局上下文的变量对象。如果仍然没有找到，说明其未生明
+
+```js
+let color = "blue"
+function getColor() {
+  return color
+}
+console.log(getColor()); //blue
+```
+
+```js
+let color = "blue"
+function getColor() {
+  let color = "red"
+  return color
+}
+console.log(getColor()); //red
+```
+
+```js
+let color = "blue"
+function getColor() {
+  let color = "red"
+  {
+    let color = "green"
+    return color
+  }
+}
+console.log(getColor()); //green
+```
+
+访问局部变量比访问全局变量要快，因为不切换作用域。不过。将来这个差异可能就微不足道了
+
+### 垃圾回收♻️
+
+JavaScript是使用垃圾回收的语言，也就是说执行环境负责在代码执行时管理内存，通过自动内存管理实现内存分配和闲置资源回收。
+
+**思路：**确定那个变量不会再使用，然后释放它占用的内存。这个过程是周期性的，即垃圾回收程序每隔一定时间就会自动运行。
+
+垃圾回收过程是一个近似且不完美的方案，因为某块内存是否还有用，属于“不可判定的”问题
+
+#### 标记清理
+
+JavaScript最常用的垃圾回收策略是标记清理。当变量进入上下文，比如在函数内部声明一个变量时，这个变量会被加上存在于上下文中的标记。而在上下文中的变量，逻辑上讲，永远不应该释放他们的内存，因为只要上下文中的代码在运行，就有可能用到它们。当变量离开上下文时，也会被加上离开上下文的标记。
+
+#### 引用计数
+
+另一种不常用的垃圾回收策略是引用计数。其思路是对每个值都记录它被引用的次数。声明变量并给它一个引用值1，如果同一个值又被赋给另一个变量，那么引用数+1.类似的，如果保存的变量会被其他值给覆盖了，那么引用值-1.当一个值的引用值为0时。就说明可以收回了
+
+⚠️
+
+```js
+function problem() {
+  let objectA= new Object()
+  let objectB= new Object()
+  objectA.otherObject = objectB
+  objectB.otherObject = objectA
+}
+```
+
+在这个例子中 objectA与objectB通过各自的属性相互引用，意味着他们的引用数都是2.在标记清理的策略下函数结束后，这两个对象都不在作用域中，而在引用计数策略下，他们的引用值一直不会变成0
+
+### 内存管理
+
+将内存占用量保持在一个较小的值可以让页面性能更好。优化内存占用的最佳手段就是保证在执行代码时只保存必要的数据。如果数据不再必要，那么把它设置为null，从而释放其引用。这也叫解除引用。这个建议最适合全局变量和全局对象的属性
+
+```js
+function createPerson(name) {
+  let localPerson= new Object()
+  localPerson.name = name
+  return localPerson
+}
+let globalPerson = createPerson()
+//解除globalPerson的引用
+globalPerson=null
+```
+
+解除对一个值的引用并不会自动导致相关内存被回收。解除引用的关键在于确保相关的值已经不在上下文里了，因此它在下次垃圾回收时被回收。
+
+##### 通过const和let声明提升性能
+
+ES6增加这两个关键字不仅有助于改善代码风格，而且同样有助于改进垃圾回收的过程。因为const和let都以快（而非函数）为作用域，所以相比于使用var，使用这两个关键字可能会更早的让垃圾回收程序介入。
+
+##### 内存泄漏
+
+在内存有限的设备上，或者在函数被多次调用的情况下，内存泄漏可能是个大问题。JavaScript中的内存泄漏大部分时由不合理的引用导致的。
+
+1. 意外的声明全局变量是最常见的内存泄漏问题
+
+   ```js
+   function setName() {
+     name = 'jake'
+   }
+   ```
+
+   没有使用关键字声明的变量会当作window的属性来创建，只要window本身不被清理就不会消失。这个问题只要加上关键字就会解决，变量在函数执行完毕后离开作用域
+
+2. 定时器引用全局变量
+
+   ```js
+   let  name = 'jake'
+   setTimeout(()=>{
+     console.log(name);
+   },1000)
+   ```
+
+   只要定时器一直运行，回调函数中的引用就会一直占用内存
+
+3. 使用JavaScript闭包也会造成内存泄漏
+
+   ```js
+   let outer =  () => {
+     let name = 'jake'
+     return ()=>{
+       return name
+     }
+   }
+   ```
+
+   调用outer()会导致分配给name的内存被泄漏。以上代码执行后创建了一个内部闭包，只要返回的函数存在就不能清理name，因为闭包一直在引用它。假如name的内容很大（一大堆很长的字符串），那就是个很大的问题
+
+   ##### 静态分配与对象池
+
+   浏览器决定何时运行垃圾回收程序的一个标准就是对象更替的速度，如果有很多的对象被初始化，然后一下子又都超出了作用域，那么浏览器就会采用激进的方式调度垃圾回收程序运行
+
+   ```js
+   function addVector(a,b) {
+     let resultant = new Vector();
+     resultant.x = a.x + b.x
+     resultant.y = a.y + b.y
+     return resultant
+   }
+   ```
+
+   在这个函数被频繁调用，相应的就会频繁的创建一个新对象，然后修改它，在返回。在这个对象生命周期很短的情况下，他很快的就会失去引用，成为可被垃圾回收机制回收的值。在垃圾回收调度程序发现这里对象更替的速度很快的时候就会更频繁地安排垃圾回收。
+
+   ```js
+   function addVector(a,b,resultant) {
+     resultant.x = a.x + b.x
+     resultant.y = a.y + b.y
+     return resultant
+   }
+   ```
+
+   解决方案时不要去动态创建矢量对象
+
+## 迭代器与生成器
+
+### 理解迭代
+
+**迭代之前需要事先知道如何使用数据结构**。数组中的每一项都只能先通过引用取得数组对象，然后再通过[]操作符取的特定索引位置上的项。这种情况并不适用于所有数据结构
+
+**遍历顺序并不是数据结构固有的。**通过递增索引来访问数据是特定于数组类型的方式，并不适用于其他具有隐士顺序的数据结构
+
+### 迭代器模式
+
+迭代器模式描述一个方案，即可以把有些结构称为“可迭代对象”因为它们实现了正式的Iterable接口，而且可以通过迭代器Iterator消费。
+
+任何实现Iterable接口的数据结构都可以被实现Iterator接口的结构消费。迭代器是按需创建的一次性对象。每个迭代器都会关联一个可迭代对象，而迭代器会暴露迭代其关联可迭代对象的API，迭代器无需了解与其关联的可迭代对象的结构，只需知道如何取得连续的值。这种概念上的分离正是Iterable和Iterator的强大之处。
+
+#### 可迭代协议
+
+实现Iterable接口（可迭代协议）要求同时具备两种能力：支持迭代的自我识别能力和创建实现Iterator接口的对象的能力。
+
+在ECMAScript中，这意味着必须暴露一个属性作为“默认迭代器”而且这个属性必须使用特殊的Symbol.iterator作为键。这个默认迭代器属性必须引用一个迭代器工厂函数，调用这个工厂函数必须返回一个新迭代器。
+
+内置类型实现可Iterable接口：
+
+- 字符串
+- 数组
+- 映射
+- 集合
+- arguments 对象
+- NodeList等DOM集合类型
+
+检查数据是否存在默认迭代器属性
+
+```js
+const num = 1
+const obj = {}
+const str = "hello word"
+const arr = [1, 2, 3, 4]
+const map = new Map().set('a',1).set('b',2)
+const set = new Set().add('a').add('b')
+const els = document.querySelectorAll('div')
+
+console.log(num[Symbol.iterator]); //undefined
+console.log(obj[Symbol.iterator]); //undefined
+console.log(str[Symbol.iterator]); //ƒ [Symbol.iterator]() { [native code] }
+console.log(arr[Symbol.iterator]); //ƒ values() { [native code] }
+console.log(map[Symbol.iterator]); //ƒ entries() { [native code] }
+console.log(set[Symbol.iterator]); //ƒ values() { [native code] }
+console.log(els[Symbol.iterator]); //ƒ values() { [native code] }
+```
+
+实际写代码过程中，不需要显示调用这个工厂函数来生成迭代器。实现可迭代协议的所有类型都会自动兼容接受可迭代对象的任何语言特性。接受可迭代对象的原生语言特性包括：
+
+- For-of 循环
+- 数组解构
+- 扩展操作符
+- Array.from()
+- 创建集合
+- 创建映射
+- Promise.all() 接受由期约组成的可迭代对象
+- Promise.race() 接受由期约组成的可迭代对象
+- yield*操作符，在生成器中使用
+
+```js
+const str = "hello word"
+const arr = [1, 2, 3]
+const map = new Map().set('a',1).set('b',2)
+const set = new Set().add('a').add('b')
+const els = document.querySelectorAll('div')
+
+// for - of 循环
+for (const el of arr) {
+  console.log(el);
+}
+//数组解构
+const [ a, b, c ] =arr
+console.log(a, b, c); //1 2 3
+//扩展运算符
+const arr2 = [...arr]
+console.log(arr2); //[1, 2, 3]
+//Array.from()
+const arr3 = Array.from(arr)
+console.log(arr3); //[1, 2, 3]
+//Set构造函数
+const set1 = new Set(arr)
+console.log(set); // Set(2) {"a", "b"}
+//Map构造函数
+const map1 = new Map([["a",1],["b",2]])
+console.log(map1);  //Map(2) {"a" => 1, "b" => 2}
+```
+
+#### 迭代器协议
+
+迭代器是一种一次性使用的对象，用于迭代与其关联的可迭代对象。迭代器API使用next()方法在可迭代对象中遍历数据。每次成功调用next(),都会返回一个IteratorResult对象，其中包括迭代器返回的下一个值。若不调用next()，则无法知道迭代器的当前位置
+
+next()方法返回的迭代器对象IteratorResult包含两个属性：done和value。done是一个布尔值。表示是否还可以调用next()取得下一个值；value包含可迭代对象的下一个值（done为false），或者undefined（done为true）。done: true状态称为“耗尽”
+
+```js
+const arr = [1, 2, 3]
+let iter = arr[Symbol.iterator]()
+console.log(iter.next()); //{value: 1, done: false}
+console.log(iter.next()); //{value: 2, done: false}
+console.log(iter.next()); //{value: 3, done: false}
+console.log(iter.next()); //{value: undefined, done: true}
+```
+
+每个迭代器都表示可迭代对象的一次性有序遍历。不同的迭代器实例之间互相没有联系
+
+```js
+const arr = [1, 2]
+let iter1 = arr[Symbol.iterator]()
+let iter2 = arr[Symbol.iterator]()
+console.log(iter1.next()); //{value: 1, done: false}
+console.log(iter1.next()); //{value: 2, done: false}
+console.log(iter2.next()); //{value: 1, done: false}
+console.log(iter2.next()); //{value: 2, done: false}
+console.log(iter2.next()); //{value: undefined, done: true}
+console.log(iter1.next()); //{value: undefined, done: true}
+```
+
+迭代器并不与可迭代对象某个时刻的快照绑定，而仅仅是使用游标来记录可迭代对象的历程。如果可迭代对象在迭代期间被修改了，迭代器也会反映响应的变化
+
+```js
+const arr = [1, 2]
+let iter1 = arr[Symbol.iterator]()
+console.log(iter1.next()); //{value: 1, done: false}
+arr.splice(1,0,3)
+console.log(iter1.next()); //{value: 3, done: false}
+console.log(iter1.next()); //{value: 2, done: false}
+console.log(iter1.next()); //{value: undefined, done: true}
+```
+
+#### 自定义迭代器
+
+```js
+class Counter {
+  constructor(limit){
+    this.limit =limit
+  }
+  [Symbol.iterator] (){
+    let count = 1
+    const limit = this.limit
+    return{
+      next() {
+        if (count < limit) {
+          return {done:false, value: count++}
+        }else{
+          return {done:true, value: undefined}
+        }
+      }
+    }
+  }
+}
+const counter = new Counter(3)
+for (const i of counter) {
+  console.log(i); 
+}
+//1
+//2
+for (const i of counter) {
+  console.log(i);
+}
+//1
+//2
+```
+
+#### 提前终止迭代器
+
+可选的return()方法用于指定在迭代器提前关闭时执行的逻辑。
+
+提前关闭的操作情况
+
+- for-of循环通过break、continue、return、throw提前退出
+- 解构操作并为消费所有值
+
+```js
+class Counter {
+  constructor(limit){
+    this.limit =limit
+  }
+  [Symbol.iterator] (){
+    let count = 0
+    const limit = this.limit
+    return{
+      next() {
+        if (count < limit) {
+          return {done:false, value: count++}
+        }else{
+          return {done:true, value: undefined}
+        }
+      },
+      return(){
+        console.log('Exiting early');
+        return {done:true}
+      }
+    }
+  }
+}
+const counter = new Counter(5)
+for (const i of counter) {
+  if (i>2) {
+    break
+  }
+  console.log(i); 
+
+}
+//0
+//1
+//2
+//Exiting early
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## javaScript最佳实践
+
