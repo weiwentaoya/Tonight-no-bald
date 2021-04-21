@@ -5127,19 +5127,301 @@ for (const i of counter) {
 //Exiting early
 ```
 
+### 生成器
+
+生成器时ECMAScript6新增的一个极为灵活的结构，拥有在一个函数块内暂停和恢复代码执行能力。这种能力具有深远的影响，比如，使用生成器可以自定义迭代器和实现协程。
+
+#### 生成器基础
+
+生成器的形式是一个函数，函数名称前面加一个星号*****表示他是一个生成器。只要是可以定义函数的地方，就可以定义生成器。
+
+**⚠️ 箭头函数不能用来定义生成器函数**
+
+```js
+//生成器函数声明
+function *generatorFn(params) {}
+//生成器函数表达式
+const generatorFn = function* () { }
+//字面量方式
+const foo = {
+  * generatorFn() { }
+}
+//作为类方法
+class Foo {
+  * generatorFn() { }
+
+}
+//作为类静态方法
+class Foo {
+  static * generatorFn() { }
+}
+```
+
+调用生成器函数会产生一个生成器对象。生成器对象一开始处于暂停执行的状态。与迭代器相似，生成器对象也实现了Iterator接口，因此具有next()方法。调用会让生成器开始或恢复执行。
+
+next()方法的返回值类似于迭代器，有一个done属性和一个value属性。函数体为空的生成器函数中间不会停留，调用一次next()就会达到done：true状态
+
+```js
+function *generatorFn() {
+  return 'foo'
+}
+const g = generatorFn()
+console.log(g.next());//{value: "foo", done: true}
+console.log(g.next());//{value: undefined, done: true}
+```
+
+#### yield中断执行
+
+yield关键字可以让生成器停止或开始执行，也是生成器最有用的地方。生成器遇到yield关键字之前会正常执行，遇到这个关键字后，执行会停止，函数作用域的状态会被保留。停止执行的生成器函数只能通过在生成器对象上调用next()方法来恢复执行
+
+```js
+function *generatorFn() {
+  yield 'foo'
+  yield 'bar'
+}
+const g = generatorFn()
+console.log(g.next());//{value: "foo", done: true}
+console.log(g.next());//{value: "bar", done: true}
+console.log(g.next());//{value: undefined, done: true}
+```
+
+生成器函数内部的执行流程会针对每个生成器对象区分作用域，在一个生成器对象上调用next()不会影响其他生成器
+
+```js
+function *generatorFn() {
+  yield 'foo'
+  yield 'bar'
+}
+const g1 = generatorFn()
+const g2 = generatorFn()
+console.log(g1.next());//{value: "foo", done: true}
+console.log(g2.next());//{value: "foo", done: true}
+console.log(g1.next());//{value: "bar", done: true}
+console.log(g2.next());//{value: "bar", done: true}
+```
+
+##### 生成器对象作为可迭代对象
+
+```js
+function *generatorFn() {
+  yield 1
+  yield 2
+  yield 3
+}
+const g = generatorFn()
+for (const i of g) {
+  console.log(i);
+}
+//1
+//2
+//3
+```
+
+在自定义迭代对象时，使用生成器对象会非常有用
+
+```js
+function *nTimes(n) {
+  while (n--) {
+    yield n
+  }
+}
+for (const i of nTimes(5)) {
+  console.log(i);
+}
+//4
+//3
+//2
+//1
+//0
+```
+
+##### 使用yield实现输入和输出
+
+除了可以作为函数的中间返回语句，yield关键字还可以作为函数的中间函数使用。上一次让生成器函数暂停的yield关键字会接受到传给next()方法的第一个值。
+
+**⚠️第一次调用next()传入的值不会被使用，因为第一次调用是为了开始执行生成器函数**
+
+```js
+function *generatorFn(initial) {
+  console.log(initial); //1
+  console.log(yield); //3
+  console.log(yield); //4
+}
+const g = generatorFn('1')
+g.next('2')//第一次调用next()传入的值不会被使用，因为第一次调用是为了开始执行生成器函数
+g.next('3')
+g.next('4')
+```
+
+##### 产生可迭代对象
+
+可以使用星号增强yield的行为，让它能够迭代一个可迭代对象，从而一次产出一个值
+
+```js
+// function *generatorFn() {
+//    for (const x of [1,2,3]) {
+//        yield x
+//    }
+// }
+// 等价与
+function *generatorFn() {
+  yield* [1,2,3]
+}
+for (const x of generatorFn()) {
+  console.log(x);
+}
+//1
+//2
+//3
+```
+
+yield*实际上只是将一个可迭代对象序列化为一连串可以单独产出的值，所有这和多个yield没什么不同
+
+```js
+function *generatorFn() {
+  yield* [1,2,3]
+  yield* [4,5,6]
+}
+for (const x of generatorFn()) {
+  console.log(x);
+}
+//1
+//2
+//3
+//4
+//5
+//6
+```
+
+##### yield*实现递归算法
+
+yield*最有用的地方是实现递归操作，此时生成器可以产生自身
+
+```js
+function *nTimes(n) {
+  if (n>0) {
+    yield* nTimes(n-1)
+    yield n-1
+  }
+}
+for (const x of nTimes(3)) {
+  console.log(x);
+}
+//0
+//1
+//2
+```
+
+在这个例子中，每个生成器首先都会从新创建的生成器对象产出每个值，然后在产出一个整数。结果就是生成器函数会递归地减少计数器值，并实例化另一个生成器函数。从顶层来看，这就相当于创建一个可迭代对象并返回递增的整数。
 
 
 
 
 
+### 生成器作为默认迭代器
+
+因为生成器对象实现了Iterable接口，而且生成器函数和默认迭代器被调用之后都产生迭代器，所以生成器格外适合作为默认迭代器
+
+```js
+class Foo {
+  constructor(){
+    this.values = [1,2,3]
+  }
+  *[Symbol.iterator](){
+    yield * this.values
+  }
+}
+const f = new Foo()
+for (const x of f) {
+  console.log(x);
+}
+//1
+//2
+//3
+```
+
+#### 提前终止生成器
+
+与迭代器类似，生成器也支持“可关闭”的概念。一个实现Iterator接口的对象一定有next()方法，还有一个可选的return()方法用于提前终止迭代器。生成器对象还有第三个方法：throw()
+
+return()和throw()方法都可以用于强制生成器进入关闭状态
+
+```js
+function *generatorFn() {
+}
+const g = generatorFn()
+console.log(g.next); //next() { [native code] }
+console.log(g.return); //return() { [native code] }
+console.log(g.throw); //throw() { [native code] }
+```
 
 
 
+##### return()
 
+return()方法会强制生成器进入关闭状态。提供给return()方法的值，就是终止迭代器对象的值
 
+```js
+function *generatorFn() {
+  yield* [1,2,3]
+}
+const g = generatorFn()
+console.log(g.next()); 
+console.log(g.return(4)); 
+console.log(g.next()); 
+console.log(g.next()); 
+console.log(g.next()); 
+```
 
+```js
+function *generatorFn() {
+  yield* [1,2,3]
+}
+const g = generatorFn()
+for (const x of g) {
+  if (x>1) {
+    g.return(4)
+  }
+  console.log(x);
+}
+//1
+//2
+```
 
+##### throw()
 
+throw()方法会在暂停的时候将一个提供的错误注入到生成器对象中。如果错误未被处理，生成器就会关闭
+
+```js
+function *generatorFn() {
+  yield* [1,2,3]
+}
+const g = generatorFn()
+console.log(g); //generatorFn {<suspended>}
+try {
+  g.throw(4)
+} catch (error) {
+  console.log(error); //4
+}
+console.log(g); //generatorFn {<closed>}
+```
+
+不过，假如生成器函数内部处理了这个错误，那么生成器就不会关闭，而且还可以恢复执行。错误处理会跳过对应的yield
+
+```js
+function *generatorFn() {
+  for (const x of [1,2,3]) {
+    try {
+      yield x
+    } catch (e) {}
+  }
+}
+const g = generatorFn()
+console.log(g.next()); //{value: 1, done: false}
+console.log(g.next()); //{value: 3, done: false}
+```
+
+## 对象、类与面向对象编程
 
 
 
