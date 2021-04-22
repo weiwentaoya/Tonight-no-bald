@@ -1,3 +1,5 @@
+
+
 # js📒
 
 ## 语言基础
@@ -3919,13 +3921,13 @@ const writableStream = new WritableStream({ //创建WritableStream实例
     console.log(value);
   }
 })
-const writeableStreamDefaultWrite = writableStream.getWriter();//返回writeableStreamDefaultWrite实例
+const writableStreamDefaultWrite = writableStream.getWriter();//返回writableStreamDefaultWrite实例
 (async ()=>{
   for await(const chunk of ints()) {
-    await writeableStreamDefaultWrite.ready;
-    writeableStreamDefaultWrite.write(chunk)
+    await writableStreamDefaultWrite.ready;
+    writableStreamDefaultWrite.write(chunk)
   }
-  writeableStreamDefaultWrite.close()
+  writableStreamDefaultWrite.close()
 })()
 ```
 
@@ -3946,7 +3948,7 @@ const {readable, writable} =  new TransformStream({
   }
 })
 const ReadableStreamDefaultReader = readable.getReader();//返回ReadableStreamDefaultReader实例
-const writeableStreamDefaultWrite = writable.getWriter();//返回writeableStreamDefaultWrite实例
+const writableStreamDefaultWrite = writable.getWriter();//返回writableStreamDefaultWrite实例
 //读取流
 (async ()=>{
   while (true) {
@@ -3959,13 +3961,13 @@ const writeableStreamDefaultWrite = writable.getWriter();//返回writeableStream
   }
 })()
 //写入流
-console.log(writeableStreamDefaultWrite);
+console.log(writableStreamDefaultWrite);
 (async ()=>{
   for await(let chunk of ints()) {
-    await writeableStreamDefaultWrite.ready;
-    writeableStreamDefaultWrite.write(chunk)
+    await writableStreamDefaultWrite.ready;
+    writableStreamDefaultWrite.write(chunk)
   }
-  writeableStreamDefaultWrite.close()
+  writableStreamDefaultWrite.close()
 })()
 ```
 
@@ -5423,17 +5425,352 @@ console.log(g.next()); //{value: 3, done: false}
 
 ## 对象、类与面向对象编程
 
+### 理解对象
 
+#### 属性的类型
 
+ECMA 使用一些内部特征来描述属性的特征。这些特性是由为JavaScript实现引擎的规范定义的。因此，开发者不能在JavaScript中直接访问。为了将某个特性标识为内部特性，规范会用两个中括号把特性的名称括起来，比如[Enumerable].
 
+属性分为两种：数据属性和访问器属性
 
+##### 数据属性
 
+数据属性包含一个保存数据值的位置。值会从这个位置读取，也会写入到这个位置
 
+- [[Configurable]]：表示属性是否可以通过delede删除并重新自定义，是否可以修改他的特性，以及是否可以把它改为访问器属性。默认为true
+- [[Enumerable]]：表示是否可以通过for-in循环返回。默认为true
+- [[Writeble]]：表示属性的值是否可以被修改。默认为true
+- [[Value]]：包含属性实际的值。默认为undefined
 
+要修改属性的默认特性，就必要使用Object.defineProperty()方法。这个方法接受三个参数：要给其添加属性的对象、属性的名称和一个描述符对象（描述符对象可以包含value、writeble、enumerable、configurable）跟相关特性的名称一一对应
 
+```js
+const person = {
+  name: "张三"
+}
+Object.defineProperty(person, "name",{
+  value: "李四",
+  configurable: false,
+  writable: false
+})
+console.log(person.name); //李四
+person.name = "张三"
+console.log(person.name); //李四
+delete person.name
+console.log(person.name); //李四
+//
+Object.defineProperty(person, "name",{ //抛出错误
+  configurable: true,
+})
+```
 
+在configurable被设置为false之后在多次调用Object.defineProperty()就会报错
 
+##### 访问器属性
 
+访问器属性不包含数据值。相反，他们包含一个获取（getter）函数和一个设置（setter）函数，不过这两个函数不是必须的。在读取访问器属性时，会调用获取函数，这个函数的责任就是返回一个有效的值。在写入访问器属性时，会调用设置函数并传入新值
+
+- [[Get]]：获取函数，在读取属性时调用。默认为undefined
+- [[Set]]：设置函数，在写入函数时调用。默认为undefined
+- [[Configurable]]：表示属性是否可以通过delede删除并重新自定义，是否可以修改他的特性，以及是否可以把它改为访问器属性。默认为true
+- [[Enumerable]]：表示是否可以通过for-in循环返回。默认为true
+
+访问器属性是不能直接定义的，也必须使用Object.defineProperty()
+
+```js
+const book = {
+  year_: 2017,
+  edition: 1
+}
+Object.defineProperty(book, "year",{
+  get(){
+    return this.year
+  },
+  set(newValue){
+    if (newValue>2017) {
+      this.year_ = newValue
+      this.edition = newValue - 2017
+    }
+  }
+})
+book.year=2020
+console.log(book);//{year_: 2020, edition: 3}
+```
+
+ECMAScript还提供了Object.defineProperties()方法，可以一次性定义多个属性。接受两个参数：对象和描述对象
+
+```js
+const book = {}
+Object.defineProperties(book,{
+  year_: {
+    value: 2017,
+    writable:true
+  },
+  edition: {
+    value: 1,
+    writable: true
+  },
+  year:{
+    get() {
+      return this.year_
+    },
+    set(newValue) {
+      if (newValue>2017) {
+        this.year_ = newValue
+        this.edition += newValue- 2017
+      }
+    }
+  }
+})
+book.year=2020
+console.log(book);//{year_: 2020, edition: 3}
+```
+
+#### 读取属性的特性
+
+使用Object.getOwnPropertyDescriptor()方法可以取得指定属性的属性描述符。接受两个参数：属性所在的对象和要取得其描述符的属性名。返回值是一个对象
+
+```js
+const book = {}
+Object.defineProperties(book,{
+  year_: {
+    value: 2017,
+    writable:true
+  },
+
+})
+book.year=2020
+const descriptor = Object.getOwnPropertyDescriptor(book, 'year')
+console.log(descriptor.configurable);  //false
+console.log(descriptor.enumerable);   //false
+console.log(typeof descriptor.set);  //function
+```
+
+ES-2017新增了Object.getOwnPropertyDescriptors()静态方法。
+
+```js
+const book = {}
+Object.defineProperties(book,{
+  year_: {
+    value: 2017,
+    writable:true
+  },
+  edition: {
+    value: 1,
+    writable: true
+  },
+  year:{
+    get() {
+      return this.year_
+    },
+    set(newValue) {
+      if (newValue>2017) {
+        this.year_ = newValue
+        this.edition += newValue- 2017
+      }
+    }
+  }
+})
+book.year=2020
+const descriptor = Object.getOwnPropertyDescriptors(book)
+console.log(descriptor);  
+// {
+//     edition: {
+//         configurable: false
+//         enumerable: false
+//         value: 4
+//         writable: true
+//     },
+//     year: {
+//         configurable: false
+//         enumerable: false
+//         get: ƒ get()
+//         set: ƒ set(newValue)
+//     },
+//     year_: { 
+//         configurable: false
+//         enumerable: false
+//         value: 2020
+//         writable: true
+//     }
+// }
+```
+
+#### 合并对象
+
+ECMAScript6为合并对象提供了Object.assign()方法。这个方法接受一个目标对象和一个或多个源对象作为参数,然后将每个源对象中可枚举（Object.propertyIsEnumerable()返回true）和自有(object.hasOwnProperty()返回true)属性复制到目标对象。以字符串和符号为键的属性会被复制。对每个符合条件的属性，这个方法会使用源对象上的[[Get]]去的属性的值。然后使用目标对象上的[[Set]]设置属性的值。**并且返回修改后的目标对象**
+
+```js
+const dest = {name: 'dest'}
+const src = {id: 'src'}
+const result = Object.assign(dest, src)
+console.log(dest); //{name: "dest", id: "src"}
+console.log(src); //{id: "src"}
+console.log(result); //{name: "dest", id: "src"}
+```
+
+Object.assign()实际上对每个源对象执行的是浅复制。如果多个源对象都有相同的属性，则使用最后一个复制的值。此外，从源对象访问器属性取得的值，比如获取函数，会作为一个静态值赋给目标对象。 **不能在两个对象间转移获取函数和设置函数**
+
+```js
+const dest = {
+  name: 'dest',
+  //可以在目标对象上设置函数观察覆盖的全过程
+  set id(x){
+    console.log(x);
+    //src
+    //noId
+  }
+}
+const src = {id: 'src'}
+const result = Object.assign(dest, src, {id: 'noId'})
+console.log(result); //{name: "dest", id: "noId"}
+```
+
+浅复制意味着只会复制对象的引用
+
+```js
+const dest = {
+}
+const src = {a: {}}
+const result = Object.assign(dest, src,)
+console.log(result); //{a: {}}
+console.log(result.a === src.a); //true
+```
+
+#### 对象标识及相等判定
+
+Object.is()这个方法与===很像，但同时也考虑了一些边界情况。这个方法接受两个参数
+
+```js
+console.log(Object.is(1,true)); //false
+console.log(Object.is(0,+0));   //true
+console.log(Object.is(-0,+0));  //false
+console.log(Object.is(NaN,NaN)); //true
+```
+
+#### 增强的对象语法
+
+ECMAScript为定义和操作对象新增了很多极其有用的语法糖特性。这些特性都没有改变现有引擎的行为，但极大地提升了处理对象的方便程度
+
+##### 属性值简写
+
+简写属性名只要使用变量名（不再用写冒号）就会自动被解释为同名的属性键。如果没有找到同名变量，则会抛出ReferenceError
+
+```js
+let name = "Matt"
+let person = {
+  name
+}
+console.log(person); //{name: "Matt"}
+```
+
+##### 可计算属性
+
+**在引入可计算属性之前**，如果想使用变量的值作为属性，就必须先声明对象，然后使用中括号语法来添加属性。不能再对象字面量中直接动态命名属性
+
+```js
+let nameKey = "name"
+let ageKey = "age"
+let jobKey = "job"
+let person = {}
+person[nameKey] = 'rose'
+person[ageKey] = '17'
+person[jobKey] = 'jump'
+console.log(person); //{name: "rose", age: "17", job: "jump"}
+```
+
+可计算属性可以再对象中完成动态属性赋值。中括号包围的对象属性键告诉运行时将其作为JavaScript表达式而不是字符串来求职
+
+```js
+let nameKey = "name"
+let ageKey = "age"
+let jobKey = "job"
+let person = {
+  [nameKey]: 'rose',
+  [ageKey]: '17',
+  [jobKey]: 'jump',
+}
+console.log(person); //{name: "rose", age: "17", job: "jump"}
+```
+
+⚠️可计算属性表达式中抛出任何错误都会中断对象创建。如果计算属性的表达式有副作用，就得小心了。
+
+#### 对象解构
+
+对象解构语法，可以在一条语句中使用嵌套数据实现一个或多个赋值操作。也就是使用与对象匹配的结构来实现对象属性赋值。
+
+```js
+let person = {
+  name: 'rose',
+  age: 17
+}
+let {name:personName, age: personAge} = person
+console.log(personName); //rose
+console.log(personAge); //17
+```
+
+使用解构，可以在一个类似对象字面量的结构中，声明多个变量，同时执行多个赋值操作。如果想让变量直接使用属性的名称，那么可以使用简写语法
+
+```js
+let person = {
+  name: 'rose',
+  age: 17
+}
+let {name, age} = person
+console.log(name); //rose
+console.log(age); //17
+```
+
+也可以在解构赋值的同时定义默认值，这适用于引用的属性不存在于源对象中的情况
+
+```js
+let person = {
+  name: 'rose',
+  age: 17
+}
+let {name, age, job="jump"} = person
+console.log(name); //rose
+console.log(age); //17
+console.log(job); //jump
+```
+
+解构在内部使用函数ToObject()（不能在运行时环境中直接访问）把源数据结构转换为对象。这意味着在对象解构的上下文中。原始值会被当成对象。这也意味着（根据ToObject()的定义）null和undefined不能被解构，否则会抛出错误。
+
+```js
+let { length } = 'hello'
+console.log(length); //5
+let { constructor } = 4
+console.log(constructor === Number); //true
+let { _ } = null //TypeError
+let { _ } = undefined //TypeError
+```
+
+**⚠️解构并不要求变量必须在解构表达式中声明。不过，如果是给事先声明的变量赋值，复制表达式必须在一对括号内**
+
+```js
+let personName, personAge;
+let person = {
+  name: 'rose',
+  age: 17
+};//主要这里的;是必须的
+({name: personName, age: personAge} = person)
+console.log(personName, personAge); //rose 17
+```
+
+##### ToObject
+
+ToObject 运算符根据下表将其参数转换为对象类型的值：
+
+| 输入类型  |                             结果                             |
+| :-------: | :----------------------------------------------------------: |
+| Undefined |                    抛出 TypeError 异常。                     |
+|   Null    |                    抛出 TypeError 异常。                     |
+|  Boolean  | 创建一个新的Boolean对象，其 [[PrimitiveValue]]属性被设为该布尔值的值。 |
+|  Number   | 创建一个新的Number对象，其[[PrimitiveValue]]属性被设为该数字值。 |
+|  String   | 创建一个新的String对象，其 [[PrimitiveValue]] 属性被设为该字符串值。 |
+|  Object   |                 结果是输入的参数（不转换）。                 |
+
+### 创建对象
 
 
 
