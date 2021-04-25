@@ -6233,13 +6233,304 @@ console.log(person1.friends); //["jake", "tom", "张三"]
 console.log(person2.friends); //["jake", "tom", "张三"]
 ```
 
+### 继承
+
+ECMAScript中因为函数没有签名，所以唯一支持的继承方式是通过原型链实现的。
+
+#### 原型链
+
+原型链是ECMAScript的主要继承方式。其基本思想就是通过原型继承多个引用类型的属性和方法。
+
+构造函数、原型和实例的关系：每个构造函数都有一个原型对象，原型有一个属性指回构造函数，而实例有一个内部指针指向原型。如果原型是另一个实例，那就意味着这个原型本身有一个内部指针指向另一个原型，相应地另一个原型也有一个指针指向另一个构造函数。这样就是在实例和原型之间构造了一条原型链
+
+```js
+function Parent() {
+  this.id = "parentId"
+}
+Parent.prototype.getValue=function(){
+  return this.id
+}
+
+function Child() {
+  this.id = "childId"
+}
+//继承Parent
+Child.prototype = new Parent
+
+let instance = new Child
+
+console.log(instance.getValue()); //childId
+```
+
+上面代码Child通过创建Parent的实例并将其赋值给自己的原型**Child.prototype**实现了对**Parent的继承**这个赋值重写了Child最初的原型，将其替换为**Parent的实例**。
+
+这意味着Parent实例可以访问的所有属性和方法，Child也可以访问。
+
+##### 默认原型
+
+默认情况下，所有引用类型都继承自Object，这也是通过原型链实现的。任何函数的默认原型都是一个Object实例，这意味着这个实例有一个内部指针指向Object.prototype。这也是为什么自定义类型能够继承包括toString()、valueOf()在内的所有默认方法的原因
+
+因此上面的例子还有额外一层继承关系
+
+```js
+function Parent() { this.id = "parentId" }
+Parent.prototype.getValue=function(){
+  return this.id
+}
+
+function Child() {
+  this.id = "childId"
+}
+Child.prototype = new Parent
+
+let instance = new Child
+console.log(instance.__proto__); //Parent {id: "parentId"}
+console.log(instance.__proto__.__proto__.constructor); //Parent() { this.id = "parentId" }
+console.log(instance.__proto__.__proto__.__proto__.constructor); //Object() { [native code] }
+```
+
+##### 原型与继承关系
+
+原型与实例的关系通过两种方式来确定。第一种方式是instanceof()操作符，如果一个实例的原型链中有相应的构造函数，则返回true
+
+```js
+console.log(instance instanceof Child); //true
+console.log(instance instanceof Parent); //true
+console.log(instance instanceof Object); //true
+```
+
+第二种方式是使用isPrototrpeOf()。原型链中每个原型都可以调用，只要原型链中包含这个原型，就会返回true
+
+```js
+ console.log(Child.prototype.isPrototypeOf(instance)); //true
+console.log(Parent.prototype.isPrototypeOf(instance)); //true
+console.log(Object.prototype.isPrototypeOf(instance)); //true
+```
+
+##### 原型链的问题
+
+原型链虽然是继承的工具，但也有和原型一样的引用值问题
+
+```js
+function Parent() { this.friend = ['jack','rose'] }
+function Child() {}
+Child.prototype = new Parent
+
+let child1 = new Child
+let child2 = new Child
+child1.friend.push('张三')
+console.log(child1.friend);// ["jack", "rose", "张三"]
+console.log(child2.friend);// ["jack", "rose", "张三"]
+```
+
+还有**子类型在实例化时不能给父类型的构造函数传参**
+
+#### 盗用构造函数
+
+为了解决上述问题，就有了这种技术（"对象伪装"或者叫做"经典继承"）。基本思路很简单：在子类构造函数中调用父类构造函数。并且用call()和apple()改变上下文
+
+```js
+function Parent(id) {
+  this.id = id
+  this.friend = ['jack','rose'] 
+}
+function Child(id) {
+  Parent.call(this,id)
+}
+
+let child1 = new Child('child1')
+let child2 = new Child('child2')
+child1.friend.push('张三')
+console.log(child1);//{id: "child1", ["jack", "rose", "张三"]}
+console.log(child2);//{id: "child2", ["jack", "rose"]}
+```
+
+上述中。通过**Parent.call(this)**Parent构造函数在为Child的实例创建新对象的上下文中执行了。这就相当于在Child对象中运行了所有Parent函数中的所有出事代码。结果就是每个实例都有了自己的colors属性。
+
+盗用构造函数的主要缺点，也是使用构造函数模式自定义类型的问题：必须在构造函数中定义方法，因此函数不能重用。此外，子类也不能访问父类原型上定义的方法，因此所以类型只能使用构造函数模式。
+
+```js
+function Parent(id) {
+  this.id = id
+  this.friend = ['jack','rose'] 
+}
+Parent.prototype.sayName= function () {
+  console.log(this.id);
+}
+function Child(id) {
+  Parent.call(this,id)
+}
+
+let child1 = new Child('child1')
+let child2 = new Child('child2')
+child1.sayName() // child1.sayName is not a function
+```
 
 
 
+#### 组合继承
 
+组合继承组合了原型链和盗用构造函数，将两者优点集中了起来
 
+```js
+function Parent(id) {
+  this.id = id
+  this.friend = ['jack','rose'] 
+}
+Parent.prototype.sayName= function () {
+  console.log(this.id);
+}
+function Child(id) {
+  Parent.call(this,id)
+}
+Child.prototype = new Parent
 
+let child1 = new Child('child1')
+let child2 = new Child('child2')
+child1.sayName() // child1
+child2.sayName() // child2
+child1.friend.push("张三")
+console.log(child1.friend); //["jack", "rose", "张三"]
+console.log(child2.friend); // ["jack", "rose"]
+```
 
+上述中child实例都会有自己的属性，包括引用值，同时还可以共享相同的方法
+
+#### 原型式继承
+
+```js
+function object(o) {
+  function F() {}
+  F.prototype = o
+  return new F()
+}
+```
+
+这个函数回创建一个临时构造函数，将传入的对象赋值给这个构造函数的原型，然后返回这个临时类型的一个实例
+
+```js
+function object(o) {
+  function F() {}
+  F.prototype = o
+  return new F()
+}
+const Child = {
+  name:'child',
+  friends:['jack','rose']
+}
+const child1  = object(Child) 
+const child2  = object(Child) 
+child1.friends.push('张三')
+console.log(child1.friends);// ["jack", "rose", "张三"]
+console.log(child2.friends);// ["jack", "rose", "张三"]
+```
+
+ECMAScript5通过增加Object.create()方法将原型式继承概念规范化了
+
+```js
+const Child = {
+  name:'child',
+  friends:['jack','rose']
+}
+const child1  = Object.create(Child) 
+const child2  = Object.create(Child) 
+child1.friends.push('张三')
+console.log(child1.friends);// ["jack", "rose", "张三"]
+console.log(child2.friends);// ["jack", "rose", "张三"]
+```
+
+#### 寄生式继承
+
+寄生式继承的思路类似于寄生构造函数和工厂模式：创建一个实现继承的函数，以某种方式增强对象，然后返回这个对象。
+
+```js
+function object(o) {
+  function F() {}
+  F.prototype = o
+  return new F()
+}
+function create(original) {
+  const clone = object(original)
+  clone.sayHi = function () {
+    console.log('Hi');
+  }
+  return clone
+}
+const Child = {
+  name:'child',
+  friends:['jack','rose']
+}
+const child1  = create(Child) 
+const child2  = create(Child) 
+child1.friends.push('张三')
+child1.sayHi() //Hi
+console.log(child1.friends);// ["jack", "rose", "张三"]
+console.log(child2.friends);// ["jack", "rose", "张三"]
+```
+
+通过寄生式继承给对象添加函数会导致函数难以重用。
+
+#### 寄生式组合继承
+
+组合继承其实也存在问题。最主要的效率问题就是父类构造函数始终会被调用两次：一次是在创建子类原型时调用，另一次是子类构造函数中调用。
+
+```js
+function Parent(id) {
+  this.id = id
+  this.friend = ['jack','rose'] 
+}
+Parent.prototype.sayName= function () {
+  console.log(this.id);
+}
+function Child(id) {
+  Parent.call(this,id)
+}
+Child.prototype = new Parent
+
+let child1 = new Child('child1')
+let child2 = new Child('child2')
+console.log(child1); // {id: "child1",friend: ["jack", "rose"]}
+console.log(child1.__proto__); // {id: undefined,friend: ["jack", "rose"]}
+console.log(child2); //  {id: "child2",friend: ["jack", "rose"]}
+console.log(child2.__proto__); // {id: undefined,friend: ["jack", "rose"]}
+```
+
+上述中可以发现，在Child实例中和原型中都存在id和friend两个属性。
+
+寄生式组合继承通过盗用构造函数继承属性，但使用混合式原型链继承方法。基本思路是不通过调用父类构造函数给子类原型赋值，而是取得父类原型的一个副本。
+
+```js
+function object(o) {
+  function F() {}
+  F.prototype = o
+  return new F()
+}
+function inheritPrototype(child, parent ) {
+  const prototype = object(parent.prototype) //创建对象
+  prototype.constructor = child	//增强对象
+  child.prototype = prototype	//赋值对象
+}
+function Parent(id) {
+  this.id = id
+  this.friend = ['jack','rose'] 
+}
+Parent.prototype.sayName= function () {
+  console.log(this.id);
+}
+function Child(id) {
+  Parent.call(this,id)
+}
+inheritPrototype(Child, Parent)
+
+let child1 = new Child('child1')
+let child2 = new Child('child2')
+console.log(child1); // {id: "child1",friend: ["jack", "rose"]}
+console.log(child1.__proto__); // Parent {constructor: ƒ}
+console.log(child2); //  {id: "child2",friend: ["jack", "rose"]}
+console.log(child2.__proto__); // Parent {constructor: ƒ}
+```
+
+这里只调用了一次Parent构造函数，避免了Child.prototype上出现不必要的属性
 
 
 
