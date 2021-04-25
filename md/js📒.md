@@ -6532,7 +6532,220 @@ console.log(child2.__proto__); // Parent {constructor: ƒ}
 
 这里只调用了一次Parent构造函数，避免了Child.prototype上出现不必要的属性
 
+### 类
 
+ECMAScript6新引入的class关键字具有正式定义类的能力。类（class）是ECMAScript中新的基础性语法糖结构。虽然看起来支持正式的面向对象编程，但实际上它背后使用的任然是原型和构造函数的概念。
+
+#### 类定义
+
+与函数表达式类似，类表达式在他们被求值前也不能引用。与函数定义不同的是，函数声明可以提升，类定义不能。
+
+类可以包含构造函数方法、实例方法、获取函数、设置函数、静态类方法，但这些都不是必须的。空的类定义也可以。
+
+#### 类构造函数
+
+constructor关键字用于在类定义块内部创建类的构造函数。方法名constructor会告诉解释器在使用new操作符创建类的新实例时，应该调用这个函数。构造函数的定义不是必须的，不定义构造函数相当于将构造函数定义为空函数。
+
+##### 实例化
+
+使用new操作符实例化等于使用new调用其构造函数。唯一可感知的不同之处就是，JavaScript解释器知道使用new和类意味着应该使用constructor函数进行实例化。
+
+使用new调用类的构造函数会执行如下操作
+
+1. 在内存中创建一个新对象
+2. 这个新对象内部的[[ptototype]]指针被赋值为构造函数的prototype属性
+3. 构造函数内部的this被赋值为这个新对象（即this指向新对象）
+4. 执行构造函数内部的代码（给新对象添加属性）
+5. 如果构造函数返回非空对象，则返回该对象；否则返回刚创建的新对象
+
+```js
+class Person{
+  constructor(IS){
+    if (IS) {
+      return {
+        foo: 'bar'
+      }
+    }
+  }
+}
+const person1 = new Person(true)
+console.log(person1); //{foo: "bar"}
+const person2 = new Person()
+console.log(person2); //Person {}
+```
+
+类构造函数与构造函数的主要区别是，调用类构造函数必须使用new操作符，而普通的构造函数如果不使用new操作符，那么就会以全局的this（这里通常是window）作为内部对象。调用类构造函数不使用new会报错
+
+ECMAScript中没有正式的类这个类型。从各方面看，ECMAScript类就是一种特殊的函数
+
+```js
+class Person{}
+console.log(typeof Person); //function
+console.log(Person); // class Person{}
+console.log(Person.prototype.constructor); // class Person{}
+console.log(Person.prototype.constructor === Person); // true
+console.log(p instanceof Person);// true
+console.log(p instanceof Object);// true
+```
+
+#### 实例、原型、类成员
+
+每次通过new调用类标识符时，都会执行类构造函数。每一个实例都对应一个唯一的成员对象，这意味着所有成员都不会在原型上共享
+
+为了在实例间共享方法，类定语语法把在类块中定义的方法作为原型方法
+
+```js
+class Person{
+  constructor() {
+    this.locate = () => {
+      console.log('instance');
+    }
+  }
+  locate(){
+    console.log('prototype');
+  }
+}
+const p = new Person
+console.log(p); //Person {locate: ƒ}
+p.locate() //instance
+p.__proto__.locate() //prototype
+```
+
+可以把方法定义在类构造函数中或者类块中，但不能在类块中给原型添加原始值或对象作为成员数据。类方法等同于对象属性，因此可以使用字符串、符号、计算的值作为键。也支持获取和设置访问器，以及静态属性（静态类成员使用static关键字）
+
+##### 迭代器与生成器方法
+
+类定义语法支持在原型和类本身上定义生成器方法
+
+```js
+class Person{
+  constructor() {
+    this.friends= ['jack','rose']
+  }
+  * nickName(){
+    yield 'jack'
+    yield 'rose'
+  }
+  static * staticNickName(){
+    yield 'static jack'
+    yield 'static rose'
+  }
+  [Symbol.iterator]() {
+    return this.friends.entries()
+  }
+}
+const p = new Person
+const nickName = p.nickName()
+console.log(nickName.next()); //{value: "jack", done: false}
+console.log(nickName.next()); //{value: "rose", done: false}
+console.log(nickName.next()); //{value: undefined, done: true}
+
+const staticNickName = Person.staticNickName()
+console.log(staticNickName.next()); //{value: "static jack", done: false}
+console.log(staticNickName.next()); //{value: "static rose", done: false}
+console.log(staticNickName.next()); //{value: undefined, done: true}
+
+for (const x of p) {
+  console.log(x);
+  //[0, "jack"]
+  //[1, "rose"]
+}
+```
+
+#### 继承
+
+ECMAScript6新增特性中最出色的一个就是原生支持了类继承机制。虽然累继承使用了新语法，但是背后依旧使用的是原型链。
+
+ES6支持单继承。使用extends关键字，可以继承任何拥有[[Construct]]和原型的对象。不仅仅可以继承类，也可以继承普通的构造函数。
+
+派生类的方法可以通过super()关键字引用他们的原型。这个关键字只能在派生类中使用，而且仅限于类构造函数，实例方法和静态内部方法。在类构造函数中使用super可以调用父类构造函数。
+
+```js
+class Person{
+  constructor() {
+    this.hasEngine= true
+  }
+}
+
+class Child extends Person {
+  constructor(){
+    //不能在调用 super() 否则会报错
+    super() //相当于Person.constructor()
+    console.log(this instanceof Person); //true
+    console.log(this); //Child {hasEngine: true}
+  }
+}
+const p = new Child
+```
+
+使用super要注意的问题
+
+- super只能在派生类构造函数和静态方法中使用
+- 不能单独饮用super关键字，要么用它调用构造函数，要么用它引用静态方法
+- 调用super会调用父类构造函数，并将返回的实例赋值给this
+- super的行为如同调用构造函数，如果需要给父类构造函数传参数，则需要手动传入。
+- 如果没有定义构造函数，在实例化派生类时调用super(),而且会传入所有传给派生类的参数
+- 在类构造函数中，不能调用super之前引用this
+- 如果派生类中显示定义了构造函数，则要么必须在其中调用super，要么必须在其中返回一个对象
+
+##### 抽象基类
+
+有时候需要定义一个类，它可供其他类继承，但本身不会被实例化。
+
+```js
+class Person{
+  constructor() {
+    if (new.target === Person) {
+      throw new Error('new.target')
+    }
+  }
+}
+
+class Child extends Person {}
+const c = new Child
+const p = new Person //报错
+```
+
+##### 继承内置类型
+
+ES6为继承内置引用类型提供了顺畅的机制，开发者可以更方便地扩展内置类型
+
+```js
+class SuperArray extends Array {
+  shuffle(){
+    //洗牌
+    for (let i = this.length-1; i>0 ; i--) {
+      const j = Math.floor(Math.random()*(i+1))
+      [this[i],this[j]] = [this[j],this[i]]
+    }
+  }
+}
+const arr = new SuperArray(1,2,3,4,5)
+console.log(arr instanceof SuperArray); //true
+console.log(arr instanceof Array); //true
+console.log(arr); //SuperArray(5) [1, 2, 3, 4, 5]
+
+arr.shuffle()
+console.log(arr); //SuperArray(5) [2, 4, 3, 5, 1]
+```
+
+把不同的行为集中到一个类是一种常见的JavaScript模式。虽然ES6没有显示支持多类继承，但也可以实现
+
+Object.assign()方法是为了混入对象行为而设计的
+
+
+
+目前最流行的继承模式时组合继承，即通过原型链继承共享的属性和方法，通过盗用构造函数继承实例属性。
+
+原型式继承可以无需明确定义构造函数而实现继承，本质上是对给定对象执行浅复制
+
+寄生式继承，先基于一个对象创建一个新对象，然后在增强这个新对象，最后返回新对象。这个模式也被用在组合继承中，用于避免重复调用父类构造函数导致的浪费
+
+**寄生组合继承被认为是实现基于类型继承的最有效方式**
+
+ECMAScript6新增的类很大程度上是基于既有原型机制的语法糖。类的语法让开发者可以优雅地定义向后兼容的类，即可以继承内置类型，也可以继承自定义类型。类有效地跨越了对象实例、对象原型、对象类之间的鸿沟。
+
+## 代理与反射
 
 
 
