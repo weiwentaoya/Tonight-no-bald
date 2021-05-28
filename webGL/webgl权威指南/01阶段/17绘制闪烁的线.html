@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import { initShader,getPosByMouse, glToCssPos,throttle } from "../utils/utils.js"
+    import Poly from "../utils/Poly.js"
+    import Sky from "../utils/Sky.js"
+    import Track from "../utils/Track.js"
+    import Compose from "../utils/Compose.js"
+    
+    // 顶点着色器
+    const vertexShader = `
+        attribute vec4 a_Attr;
+        varying float v_Alpha;
+        void main() {
+            gl_Position = vec4(a_Attr.x, a_Attr.y, 0.0, 1.0);
+            gl_PointSize = a_Attr.z;
+            v_Alpha=a_Attr.w;
+        }
+    `
+    // 片源着色器
+    const fragmentShader = `
+        precision mediump float;
+        varying float v_Alpha;
+        uniform bool u_IsPOINTS;
+        void main() {
+            if(u_IsPOINTS){
+                float dist=distance(gl_PointCoord,vec2(0.5,0.5));
+                if(dist<0.5){
+                    gl_FragColor=vec4(1.0, 1.0, 0.0, v_Alpha);
+                }else{
+                    discard;
+                }
+            }else{
+                gl_FragColor=vec4(1.0, 1.0, 0.0, v_Alpha);
+            }
+        }
+    `
+    
+    const {innerWidth, innerHeight} = window
+    canvas.width = innerWidth
+    canvas.height = innerHeight
+    const gl = canvas.getContext('webgl');
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+    
+    initShader(gl,vertexShader,fragmentShader)
+    gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    let poly = null
+    let sky =  new Sky(gl)
+    const compose = new Compose()
+    let point = null
+    //取消右击提示
+    canvas.oncontextmenu = function(){
+        return false;
+    }
+    canvas.addEventListener('mousedown',e=>{
+        if (e.button === 2) {
+            popVertices()
+        }else{
+            const {x,y} = getPosByMouse(e, canvas)
+            if (poly) {
+                addVertice(x,y)
+            }else{
+                creatPoly(x,y)
+            }
+        }
+        rander()
+    })
+    canvas.addEventListener('mousemove',e=>{
+        const {x,y} = getPosByMouse(e, canvas)
+        if (poly) {
+            point = hoverPoint({x,y})
+            // console.log(point);
+            const obj = poly.geoData[poly.geoData.length-1]
+            obj.x=x
+            obj.y=y
+        }
+    })
+    function hoverPoint(delta){
+        for(let {geoData} of sky.children){
+            for (const el of geoData) {
+                if (el !== geoData[geoData.length-1]) {
+                    const {x,y} = glToCssPos({
+                        x:delta.x - el.x,
+                        y:delta.y - el.y,
+                    }, canvas)
+                    const dist = x*x+y*y
+                    if (dist<=100) {
+                        return el
+                    }
+                }
+            }
+        }
+        return null
+    }
+    function popVertices() {
+        if (poly) {
+            poly.geoData.pop()
+            compose.children.pop()
+            poly = null
+        }
+    }
+    function random() {
+        return Math.random()*8.0+3.0
+    }
+    function addVertice(x,y){
+        // poly.addVertices(x,y)
+        if(point){
+            poly.geoData[poly.geoData.length-1]=point
+        }
+        const obj ={x,y,pointSize:random(),alpha:1}
+        poly.geoData.push(obj)
+        crtTrack(obj)
+    }
+    function creatPoly(x,y) {
+        const o1 = point?point:{x,y,pointSize:random(),alpha:1}
+        const o2 = {x,y,pointSize:random(),alpha:1}
+        poly = new Poly({
+            attrName:'a_Attr',
+            geoData:[o1, o2],
+            size:4,
+            types:['POINTS','LINE_STRIP']
+        })
+        sky.addPoly(poly)
+        crtTrack(o1)
+        crtTrack(o2)
+    }
+    function crtTrack(obj) {
+        const {pointSize} = obj
+        const track = new Track(obj)
+        track.start = new Date
+        track.timeLen = 2000
+        track.loop = true
+        track.keys = new Map([
+            [
+                'pointSize',[
+                    [500, pointSize],
+                    [1000, 0],
+                    [1500, pointSize],
+                ]
+            ],
+            [
+                'alpha',[
+                    [500, 1],
+                    [1000, 0],
+                    [1500, 1],
+                ]
+            ],
+        ])
+        compose.add(track)
+    }
+    
+    !(function ani() {
+        compose.update(new Date)
+        sky.updatePoly(['x','y','pointSize','alpha'])
+        rander()
+        requestAnimationFrame(ani)
+    })()
+    function rander() {
+
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        sky.draw()
+    }
+    
+</script>
+</html>

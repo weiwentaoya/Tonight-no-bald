@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<style> 
+*{margin: 0; padding: 0;} 
+canvas{ background: url("../wf.jpeg");}</style>
+<script type="module">
+    import { initShader, getPosByMouse } from "../utils/utils.js"
+    import Compose from "../utils/Compose.js"
+    import Track from "../utils/Track.js"
+    // 顶点着色器
+    const vertexShader = `
+        attribute vec4 a_Postion;
+        attribute float a_PointSize;
+        void main() {
+            gl_Position = a_Postion;
+            gl_PointSize = a_PointSize;
+        }
+    `
+    const fragmentShader = `
+        precision mediump float;
+        uniform vec4 u_FragColor;
+        void main() {
+            float dist = distance(gl_PointCoord, vec2(0.5,0.5));
+            if(dist < 0.5){
+                gl_FragColor = u_FragColor;
+            } else {
+                discard;
+            }
+        }
+    `
+    // vec4(1.0, 1.0, 0.0, 1.0)
+    // 片源着色器
+    const {innerWidth, innerHeight} = window
+    canvas.width = innerWidth
+    canvas.height = innerHeight
+    const gl = canvas.getContext('webgl');
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+    initShader(gl,vertexShader,fragmentShader)
+    const StartS = []
+    const compose = new Compose()
+    // 在js中获取attribute 变量
+    const a_Position = gl.getAttribLocation(gl.program, 'a_Postion')
+    const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize')
+     // 在js中获取uniform 变量
+    const u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor')
+
+    gl.clearColor(0,0,0,0.6) 
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    
+    canvas.addEventListener('click',e=>{
+        const {x,y} = getPosByMouse(e, canvas)
+        const size = Math.random()*15 + 2
+        const a = 1
+        const obj = {x,y,size,a}
+        StartS.push(obj)
+        const startTrack = new Track(obj)
+        startTrack.start =  new Date
+        startTrack.loop =  true
+        startTrack.timeLen =  2000
+        startTrack.keys = new Map([
+            ['a' ,[
+                [500, a],
+                [1000, 0],
+                [1500, a],
+            ]]
+        ])
+        compose.add(startTrack)
+    })
+  
+    function rander(points) {
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        points.forEach(({x,y,size,a})=>{
+            gl.vertexAttrib2f(a_Position,x,y)
+            gl.vertexAttrib1f(a_PointSize,size)
+            gl.uniform4f(u_FragColor,0.87,0.92,1,a)
+            gl.drawArrays(gl.POINTS, 0, 1)
+        })
+    }
+    !(function ani() {
+        compose.update(new Date)
+        rander(StartS)
+        requestAnimationFrame(ani)
+    })()
+</script>
+</html>

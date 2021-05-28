@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import { initShader,getPosByMouse } from "../utils/utils.js"
+    import Poly from "../utils/Poly.js"
+    // 顶点着色器
+    const vertexShader = `
+        attribute vec4 a_Postion;
+        void main() {
+            gl_Position = a_Postion;
+            gl_PointSize = 10.0;
+        }
+    `
+    // 片源着色器
+    const fragmentShader = `
+        
+        precision mediump float;
+        uniform vec4 u_FragColor;
+        void main() {
+            float dist = distance(gl_PointCoord, vec2(0.5,0.5));
+            if(dist < 0.5){
+                gl_FragColor  = vec4(1.0, 1.0, 0.0, 1.0);
+            } else {
+                discard;
+            }
+        }
+    `
+    
+    const {innerWidth, innerHeight} = window
+    canvas.width = innerWidth
+    canvas.height = innerHeight
+    const gl = canvas.getContext('webgl');
+
+    initShader(gl,vertexShader,fragmentShader)
+    gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    const poly = new Poly({
+        gl,
+        attrName:'a_Postion'
+    })
+    canvas.addEventListener('click',e=>{
+        const {x,y} = getPosByMouse(e, canvas)
+        poly.addVertices(x,y)
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        //mac电脑这里会有兼容性问题，后面解决
+        poly.draw(['POINTS','LINE_STRIP'])
+    })
+    
+</script>
+</html>

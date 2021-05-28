@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+</body>
+<script type="module">
+    import { Color } from "https://unpkg.com/three/build/three.module.js";
+    const {innerWidth, innerHeight} = window
+    canvas.width = innerWidth
+    canvas.height = innerHeight
+    const gl = canvas.getContext('webgl');
+    const color = new Color(1, 0, 0);
+    
+    !(function ani(){
+        color.offsetHSL(0.005,0,0);
+        gl.clearColor(color.r,color.g,color.b,1)
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        requestAnimationFrame(ani)
+
+    })()
+</script>
+</html>

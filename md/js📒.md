@@ -59,6 +59,8 @@
   let num2 = 0x1f //十六进制的31
   ```
 
+  以下内容是由于JavaScript舍入错误导致的。这并不是JavaScript独有的问题，是所有使用二进制浮点数的编程语言共同的问题。
+  
   ```js
   0.1+0.2 = 0.30000000000000004
   
@@ -67,8 +69,19 @@
   //以上运算会产生精度问题
   //当数值在运算时会先转换成2进制进行运算，展示时在转换成10进制
   ```
-
   
+  - 数值字面量中的分隔符
+  
+    可以用下划线将数值字面量分割为容易看清的数字段
+  
+    ```js
+    const num1 = 1_000
+    console.log(num1) //1000
+    const num2 = 1_000_000
+    console.log(num2) //1000 000
+    ```
+  
+    
 
 ##### 位操作
 
@@ -158,8 +171,6 @@ var res= add(num);
 let result = 26%5 //1
 ```
 
-
-
 #### 语句
 
 ##### do-while
@@ -186,11 +197,97 @@ while(i<10){
 }
 ```
 
+### 关系表达式
+
+关系表达式始终求值为布尔值，而该值经常用于控制程序的执行流
+
+#### 相等和不想等操作符
+
+==和===操作符分别用两个相同的标准检查两个值是否相等。可接受任意类型的操作数
+
+- ===操作符被称为严格相等操作符（或者全等操作符），不做类型转换
+- ==操作符被称为相等操作符，它允许类型转换。
+- !=和!==操作符测试的关系和==和===恰好相反
+
+##### 严格相等===
+
+- 如果两个值类型不同，则不相等
+- 如果一个或两个值事NaN则不相等（NaN不等于任何值，包括它本身！要检查是不是NaN需使用isNaN() ）
+- 0和-0相等
+- 如果两个值引用同一个对象、数组或函数，则相等，如果他们引用不同的对象，即使两个对象有完全一样的属性也不相等
+
+##### 基于类型转换的相等==
+
+- 如果两个值类型相等，则按照严格相等来测试
+- 如果类型不相等
+  - null和undefined相等
+  - '1'和1相等
+  - 1和true相等
+  - 如果一个值事对象，另一个值是数值或字符串，则先把对象转换为原始值，在比较。对象转换为原始值优先尝试使用valueOf()再尝试使用toString().但Date类是个例外，这个类执行toString()转换
+
+#### in操作符
+
+in操作符期待左边操作数是字符串、符号或可以转换为字符串的值，期待右侧事对象。如果左侧的值是右侧的对象的属性名，则in返回true
+
+```js
+const point = {x:1, y:2}
+console.log('x' in point); //true
+console.log('z' in point); //false
+console.log('toString' in point); //true
+```
+
+#### instanceof操作符
+
+instanceof操作符期待左侧操作符是对象，右侧操作符是对象的标识
+
+```js
+const d = new Date
+console.log(d instanceof Date); //true
+console.log(d instanceof Number); //false
+console.log(d instanceof Object); //true
+
+const arr = [1,2,3]
+console.log(arr instanceof Array); //true
+console.log(arr instanceof RegExp); //false
+console.log(arr instanceof Object); //true
+```
+
+⚠️所有对象都是Object的实例
+
+### 逻辑表达式
+
+逻辑操作符&&、||和! 执行布尔代数操作，经常与关系操作符一起使用。
+
+#### 逻辑与&&
+
+&&经常用于连接两个关系表达式
+
+```js
+x===0&&y===0  		//当x和y都等于0时表达式为true
+```
+
+&&也可对真值和假值执行布尔与操作符
+
+如果&&左侧的值是真值，则表达式的值取决于右侧的值。如果右侧的值是真值，则整个表达式的值一定是真值；如果右侧的值是假值，则整个表达式的值一定是假值
+
+```js
+const o = {x:1}
+const p = null
+console.log(o&&o.x) //1
+console.log(p&&p.x) //null
+```
+
+
+
+
+
 ## 基本引用类型
 
 #### Date
 
-**Date.parse()**方法接受一个表示日期的字符串参数，将该字符串转换为表示改日期的毫秒数
+**now()**当前时间的时间戳
+
+**parse()**方法接受一个表示日期的字符串参数，将该字符串转换为表示改日期的毫秒数
 
 **toLocaleString()** 返回与浏览器运行的本地环境一致的日期和时间
 
@@ -300,13 +397,9 @@ endsWith()  检查是否以该字符串结尾
 
 includes()  检查整个字符串是否包含
 
-
-
 trim() 删除前后所有的空格，不会删除中间的空格
 
 repeat() 将字符串复制多少次
-
-
 
 **如果小于指定长度，会在相应的一边填充字符**
 
@@ -319,6 +412,120 @@ var msg = 'hello'
 msg.padStart(10,'.')  //".....hello"
 msg.padEnd(10,'.')    //"hello....."
 ```
+
+#### Symbol
+
+ES6新增的原始类型，可以用来作为Object的键名.
+
+Symbol类型没有字面量语法。要获取一个Symbol值，需要调用Symbol()函数。这个函数永远不会返回相同的值，即使传入的参数一样。
+
+Symbol.for()与Symbol()不同，传入相同字符串调用Symbol.for()始终返回相同的值
+
+```js
+const s1 = Symbol('sys')
+const s2 = Symbol('sys')
+console.log(s1===s2); //false
+
+console.log(s1.toString()); //Symbol(sys)
+console.log(s2.toString()); //Symbol(sys)
+
+const s3 = Symbol.for('sys')
+const s4 = Symbol.for('sys')
+console.log(s3===s4); //true
+
+console.log(s3.toString()); //Symbol(sys)
+console.log(s4.toString()); //Symbol(sys)
+```
+
+### 类型转换
+
+JavaScript会根据需要转换相关的数据类型
+
+#### ==、===
+
+```js
+null == umndefined  //true
+'0' == 0 //true
+0 == false //true
+'0' == false //true
+```
+
+#### 显示转换
+
+toFixed()把数值转换为字符串时可以指定小数点后面的位数
+
+toExponential()使用指数计数法将数值转换为字符串，结果是小数点前一位，小数点后为指定位数
+
+toPrecision()按照指定的有效数字个数将数值转换为字符串
+
+以上三种方法必要时都会舍去末尾的数字或者补0
+
+```js
+const n = 123456.789
+
+console.log(n.toFixed(0)); //123457
+console.log(n.toFixed(2)); //123456.79
+console.log(n.toFixed(5)); //123456.78900
+
+console.log(n.toExponential(1)); //1.2e+5
+console.log(n.toExponential(3)); //1.235e+5
+
+console.log(n.toPrecision(7)); //123456.8
+console.log(n.toPrecision(12)); //123456.789000
+```
+
+parseInt() 只解析整数
+
+parseFloat() 即解析整数也解析浮点数
+
+parseInt()和parseFloat()都会跳过开头的空格，尽量多的解析数字字符，忽略后面的无关字符。如果第一个非空格字符不是有效的数值字面量，会返回NaN
+
+```js
+console.log(parseInt("3 blind mice")); //3
+console.log(parseFloat("3 blind mice")); //3
+console.log(parseInt("-12.34")); //-12
+console.log(parseInt("0xFF")); //255
+console.log(parseInt("-0xFF")); //-255
+console.log(parseInt("0.1")); //0
+console.log(parseInt(".1")); //NaN 整数不能以.开头
+console.log(parseFloat(".1")); //0.1
+console.log(parseInt("$12.34")); //NaN
+```
+
+#### 解构赋值
+
+在解构赋值中，等号右边的值是数组或对象（解构化的值），而左边通过模拟数组或对象字面量语法指定一个或多个变量。解构赋值发生时，会从右侧的值中提取（解构）出一个或多个值，保存在左侧列出的变量中。解构赋值可能最常用语在const、let、var声明语句中初始化变量，也可以在常规赋值表达式中使用，也可以在定义函数参数时使用。
+
+```js
+let [x,y] = [1,2]; //相当于let x=1, y=2
+console.log(x,y); //1 2
+[x,y] = [x+1, y+1] //相当于x=x+1,y=y+1
+console.log(x,y); //2 3
+[x,y] = [y,x] //交换两个变量的值
+console.log(x,y); //3 2
+```
+
+```js
+let o = {x:1,y:2}
+for (const [name,value] of Object.entries(o)) {
+    console.log(name, value);
+    //x 1
+    //y 2
+}
+```
+
+解构赋值左侧变量的个数不一定与右侧数组中元素的个数相同，左侧多余的变量会被设置为undefined，而右侧多余的值会被忽略。左侧变量列表可以包含额外的逗号，以跳过右侧某些值
+
+```js
+let [x,y] = [1]
+console.log(x,y); //1 undefined
+[x,y] = [6,7,8]
+console.log(x,y); //6 7
+[,x,,,y] = [1,2,3,4,5,6]
+console.log(x,y); //2 5
+```
+
+
 
 ### Global
 
@@ -780,7 +987,7 @@ console.log(factorial(5));//0
 
 this在函数内部是一个特殊的对象，在标准函数和箭头函数中有不同的行为
 
-在标准函数中，this引用的是把函数当成方法调用的上下文对象，（在网页的全局上下文中，this指向weindows），this到底引用那个对象必须到**函数被调用时才能确定**。因此这个值在代码执行的过程中可能会变。
+在标准函数中，this引用的是把函数当成方法调用的上下文对象，（在网页的全局上下文中，this指向window），this到底引用那个对象必须到**函数被调用时才能确定**。因此这个值在代码执行的过程中可能会变。
 
 在箭头函数中，this引用的是定义箭头函数的上下文
 
@@ -797,6 +1004,38 @@ prototype：保存引用类型所有实例的地方，意味着toString(), value
 apply， call， bind：
 
  这三个方法都会以指定的this值来调用函数，就是调用函数时函数体内的this对象的值，apply接收两个参数this的值和一个参数数组，call接收多个参数，第一个是this的值后面就是逐个传递的参数，bind只接受一个参数 this的值
+
+
+
+## 表达式与操作符
+
+### 条件式属性访问
+
+在使用普通的属性访问表达式时，如果.和[]左侧的表达式求值为null或undefined，会报TypeError。使用?. 和 ?[]语法防止这种错误发生。如果.和[]左侧的表达式求值为null或undefined，那么整个表达式求值会是undefined
+
+```js
+const a = {b:null}
+console.log(a.b?.c); //undefined
+console.log(a.b.c); //TypeError
+```
+
+也适用于函数调用
+
+```js
+function square(x, log) {
+  if (log) {
+     log(x);
+  }
+  return x * x
+}
+//等价于
+function square(x, log) {
+  log?.(x);
+  return x * x
+}
+```
+
+不过要注意，?.()只会检查左侧的值是不是null或undefined，不会验证该值是不是函数
 
 ## BOM
 
