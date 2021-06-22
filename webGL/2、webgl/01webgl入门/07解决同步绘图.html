@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import {initShaders} from "./utils/utils.js"
+    const VSHADER_SOURCE = `
+        attribute vec4 a_Position;
+        void main() {
+            gl_Position = a_Position; // 设置坐标位置
+            gl_PointSize = 10.0; // 设置尺寸
+        }
+    `
+    const FSHADER_SOURCE = `
+        void main(){
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 设置颜色
+        }
+    `
+    canvas.width= window.innerWidth;
+    canvas.height= window.innerHeight;
+    // 获取WebGL绘图上下文
+    const gl = canvas.getContext('webgl');
+    initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+    // 指定清空canvas的颜色
+    gl.clearColor(0, 0, 0, 1);
+    const Points= [
+        {x:0.5,y:0},
+        {x:-0.5,y:0},
+    ]
+    // 清空canvas
+    const a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+    setTimeout(() => {
+        Points.push({x:0,y:0.5})
+        rander(Points)
+    }, 1000);
+    rander(Points)
+    function rander(arr) {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        arr.forEach(({x,y} )=> {
+            gl.vertexAttrib2f(a_Position, x,y)
+            gl.drawArrays(gl.POINTS, 0, 1)
+        });
+    }
+</script>
+</html>

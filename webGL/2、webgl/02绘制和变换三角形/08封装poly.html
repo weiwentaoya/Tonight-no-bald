@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import {initShaders} from "./utils/utils.js"
+    import Poly from "./utils/poly.js"
+    const VSHADER_SOURCE = `
+        attribute vec4 a_Position;
+        void main() {
+            gl_Position = a_Position; // 设置坐标位置
+            gl_PointSize = 10.0; // 设置尺寸
+        }
+    `
+    const FSHADER_SOURCE = `
+        void main(){
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 设置颜色
+        }
+    `
+    canvas.width= window.innerWidth;
+    canvas.height= window.innerHeight;
+    // 获取WebGL绘图上下文
+    const gl = canvas.getContext('webgl');
+    initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+    // 指定清空canvas的颜色
+    gl.clearColor(0, 0, 0, 1);
+    // 清空canvas
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    
+    const vertices = [0.5, 0,-0.5, 0]
+    const poly = new Poly({
+        gl,
+        vertices,
+        size:2,
+        attrName:'a_Position'
+    })
+    poly.draw()
+    setTimeout(() => {
+        poly.addVertices(0, 0.5)
+        poly.draw(['POINTS','LINE_LOOP'])
+    }, 1000);
+</script>
+</html>

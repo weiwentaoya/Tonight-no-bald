@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import {initShaders} from "./utils/utils.js"
+    const VSHADER_SOURCE = `
+        attribute vec4 a_Position;
+        void main() {
+            gl_Position = a_Position; // 设置坐标位置
+            gl_PointSize = 10.0; // 设置尺寸
+        }
+    `
+    const FSHADER_SOURCE = `
+        void main(){
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 设置颜色
+        }
+    `
+    canvas.width= window.innerWidth;
+    canvas.height= window.innerHeight;
+    // 获取WebGL绘图上下文
+    const gl = canvas.getContext('webgl');
+    initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+    // 指定清空canvas的颜色
+    gl.clearColor(0, 0, 0, 1);
+    // 清空canvas
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    const a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+    gl.vertexAttrib4f(a_Position, 0.5, 0, 0, 1)
+    gl.drawArrays(gl.POINTS, 0, 1)
+
+    gl.vertexAttrib4f(a_Position, -0.5, 0, 0, 1)
+    gl.drawArrays(gl.POINTS, 0, 1)
+
+    setTimeout(() => {
+        gl.vertexAttrib4f(a_Position, 0, 0.5, 0, 1)
+    gl.drawArrays(gl.POINTS, 0, 1)
+    }, 1000);
+    
+</script>
+</html>
