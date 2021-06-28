@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import { Matrix4 } from 'https://unpkg.com/three/build/three.module.js';
+    import { initShaders } from "./utils/utils.js"
+    import Poly from "./utils/poly.js"
+    const VSHADER_SOURCE = `
+        attribute vec4 a_Position;
+        uniform mat4 u_Matrix;
+        void main() {
+            gl_Position = u_Matrix * a_Position;
+            gl_PointSize = 30.0;
+        }
+    `
+    const FSHADER_SOURCE = `
+        void main(){
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 设置颜色
+        }
+    `
+    canvas.width= window.innerWidth;
+    canvas.height= window.innerHeight;
+    // 获取WebGL绘图上下文
+    const gl = canvas.getContext('webgl');
+    initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+    // 指定清空canvas的颜色
+    gl.clearColor(0, 0, 0, 1);   
+
+    const u_Matrix = gl.getUniformLocation(gl.program, 'u_Matrix')
+    const mt = new Matrix4()
+    mt.makeTranslation(0.5, 0, 0 )
+
+    const mr = new Matrix4()
+    mr.makeRotationZ(Math.PI/9)
+
+    const matrix = mt.multiply(mr)
+
+    gl.uniformMatrix4fv(u_Matrix, false, matrix.elements)
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    const poly = new Poly({
+        gl,
+        attrName:'a_Position',
+        vertices:[0.25, 0,-0.25, 0, 0, 0.5],
+        types:['TRIANGLES']
+    })
+    poly.draw() 
+    
+</script>
+</html>
