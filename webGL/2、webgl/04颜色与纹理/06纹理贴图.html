@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import {initShaders} from "./utils/utils.js"
+    const VSHADER_SOURCE = `
+        attribute vec4 a_Position;
+        attribute vec2 a_TexCoord;
+        varying vec2 v_TexCoord;
+        void main() {
+            gl_Position = a_Position; // 设置坐标位置
+            v_TexCoord = a_TexCoord;
+        }
+    `
+    const FSHADER_SOURCE = `
+        precision mediump float;
+        varying vec2 v_TexCoord;
+        uniform sampler2D u_Sampler;
+        void main(){
+            gl_FragColor = texture2D(u_Sampler, v_TexCoord);
+        }
+    `
+    canvas.width= window.innerWidth;
+    canvas.height= window.innerHeight;
+    // 获取WebGL绘图上下文
+    const gl = canvas.getContext('webgl');
+    initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+    // 指定清空canvas的颜色
+    gl.clearColor(0, 0, 0, 1);
+
+    
+    const content = new Float32Array([
+        -0.5, 0.5, 0, 1,
+        -0.5,-0.5, 0, 0, 
+        0.5,  0.5, 1, 1,
+        0.5, -0.5, 1, 0,
+    ])
+    
+    // 创建缓冲区对象
+    const contentBuffer = gl.createBuffer()
+    // 绑定缓冲区对象
+    gl.bindBuffer(gl.ARRAY_BUFFER, contentBuffer)
+    // 将数据写入缓冲区对象
+    gl.bufferData(gl.ARRAY_BUFFER, content, gl.STATIC_DRAW)
+    
+    const bytes = content.BYTES_PER_ELEMENT;
+    const position = 2
+    const texCoord = 2
+    const categorySize = position + texCoord 
+    const categoryBytes = bytes * categorySize
+    const a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+    gl.vertexAttribPointer(a_Position, position, gl.FLOAT, false,categoryBytes, 0)
+    gl.enableVertexAttribArray(a_Position)
+    
+    const a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord')
+    gl.vertexAttribPointer(a_TexCoord, texCoord, gl.FLOAT, false, categoryBytes, bytes*position)
+    gl.enableVertexAttribArray(a_TexCoord)
+
+    const image = new Image
+    image.src="../images/xxx.jpeg"
+    image.onload = function () {
+        const u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler')
+        // 创建纹理对象
+        const texture = gl.createTexture()
+        // 对纹理对象进行y轴反转（由于image图像的坐标系y轴朝下，st坐标系的y轴朝上）
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
+        // 开启0号纹理单元
+        gl.activeTexture(gl.TEXTURE0)
+        // 绑定纹理对象
+        gl.bindTexture(gl.TEXTURE_2D, texture)
+        // 配置纹理对象
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+        // 配置纹理对象
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image)
+        // 将0号单元传递给着色器
+        gl.uniform1i(u_Sampler, 0)
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    }
+
+   
+</script>
+</html>
