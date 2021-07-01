@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import {initShaders} from "./utils/utils.js"
+    const VSHADER_SOURCE = `
+        attribute vec4 a_Position;
+        attribute float a_Size;
+        void main() {
+            gl_Position = a_Position; // 设置坐标位置
+            gl_PointSize = a_Size; // 设置尺寸
+        }
+    `
+    const FSHADER_SOURCE = `
+        precision mediump float;
+        void main(){
+            gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); // 设置颜色
+        }
+    `
+    canvas.width= window.innerWidth;
+    canvas.height= window.innerHeight;
+    // 获取WebGL绘图上下文
+    const gl = canvas.getContext('webgl');
+    initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+    // 指定清空canvas的颜色
+    gl.clearColor(0, 0, 0, 1);
+    // 清空canvas
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    
+    const vertices = new Float32Array([
+        0, 0.5, 
+        -0.5, 0,  
+        0.5, 0
+    ])
+    
+    // 创建缓冲区对象
+    const vertexBuffer = gl.createBuffer()
+    // 绑定缓冲区对象
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    
+    const a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+    // 将缓冲区分配给一个变量
+    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0)
+    // 将数据写入缓冲区对象
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+    // 开启变量
+    gl.enableVertexAttribArray(a_Position)
+    const sizes = new Float32Array([10.0,20.0,50.0])
+    // 创建缓冲区对象
+    const sizeBuffer = gl.createBuffer()
+    // 绑定缓冲区对象
+    gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuffer)
+    
+    const a_Size = gl.getAttribLocation(gl.program, 'a_Size')
+    // 将缓冲区分配给一个变量
+    gl.vertexAttribPointer(a_Size, 1, gl.FLOAT, false, 0, 0)
+    // 将数据写入缓冲区对象
+    gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.STATIC_DRAW)
+    // 开启变量
+    gl.enableVertexAttribArray(a_Size)
+    gl.drawArrays(gl.POINTS, 0, 3)
+</script>
+</html>
