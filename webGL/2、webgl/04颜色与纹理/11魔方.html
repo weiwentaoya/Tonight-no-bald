@@ -107,7 +107,7 @@
     gl.vertexAttribPointer(a_TexCoord, texCoord, gl.FLOAT, false, categoryBytes, bytes*position)
     gl.enableVertexAttribArray(a_TexCoord)
 
-    const image = new Image
+    const image = new Image()
     image.src="../images/mf.jpg"
     image.onload = function () {
         const u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler')
