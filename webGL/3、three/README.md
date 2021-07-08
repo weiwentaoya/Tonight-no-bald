@@ -1,57 +1,40 @@
-### 初始化渲染器
+# Scene(场景)
 
 ```js
-renderer=new THREE.WebGLRenderer();//实例话渲染器
-renderer.setSize(window.innerWidth,window.innerHeight)//设置宽和高
-document.body.appendChild(renderer.domElement);//添加到dom
+const scene = new Scene() // 创建场景对象
 ```
 
-### 初始化场景
+### 构造器
 
-```js
-scene = new THREE.Scene()//初始化场景
-```
+Scene()
 
-### 初始化相机
+## 属性
 
-```js
-//实例华相机
-//1、视野，值越大，渲染出来的内容越多
-//2、宽高比：默认是按照画布与显示的宽高来设置，如果设置的不对，内容会被拉伸
-//3、近裁面和远裁面，设置相机可以看到场景内容的范围，如果场景内的内容位置不在范围内，将不会显示
-camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 200)
-camera.position.set(4, 4, 15)//放置相机的位置x,y,z
-```
+- .fog
 
-### 初始化物体
+  一个fog实例定义了影响场景中每个物体的雾的类型。默认为null。
 
-```js
- geometry = new THREE.BoxGeometry(2,2,2)//创建几何体
- material= new THREE.MeshNormalMaterial()//创建材质
- mesh = new THREE.Mesh(geometry, material)//创建网格
-```
+- .overrideMaterial
 
-#### 初始化一个立方体
+  如果不为空，它将强制场景中每个物体都适用这里的材质来渲染。默认为null。
 
-```js
-//初始化一个立方体
-new THREE.BoxGeometry(width,height,depth,widthSegments,HeightSegments,depthSegments)
-```
+- .autoUpdate
 
-1. width：沿x轴的宽度,默认值为1
-2. height：沿y轴的宽度,默认值为1
-3. depth：沿z轴的宽度,默认值为1
-4. widthSegments：可选，沿着变得**宽度**的分割面的数量，默认值为1
-5. HeightSegments：可选，沿着变得**高度**的分割面的数量，默认值为1
-6. depthSegments：可选，沿着变得**深度**的分割面的数量，默认值为1
+  默认为true，若设置这个值，则渲染器会检查每一帧是否需要更新场景及其中物体的矩阵。当设为false时，你必须亲自手动维护场景中的矩阵
 
-#### 初始化一个圆
+- .background 
 
-```js
-new THREE.CircleGeometry(ridus, segments, thetaStart, thetaLength)
-```
+  若不为空，在渲染场景的时候将设置背景，且背景总是先被渲染的，可以设置一个用于clear的Color（颜色）、一个覆盖canvas的Texture（纹理），或是一个CubeTexture。默认为null
 
-1. ridus：圆的半径
-2. segments：段数，最小值为3，默认值为8（有多少个三角形组成）
-3. thetaStart：第一段的起始角度
-4. thetaLength：圆形扇形的中心角，通常称为theta。默认值为2*PI，画出一个整圆
+## 方法
+
+- .toJSON
+
+  meta--包含元数据的对象，例如场景中的纹理或图片。将scene对象转换为three.js JSON Object/Scene format
+
+- .dispose()
+
+  清楚WebGLRenderer内部缓存的场景相关的数据
+
+  
+

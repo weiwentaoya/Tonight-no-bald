@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="WebGL-output"></div>
+</body>
+<script type="module">
+    import { 
+        Scene, 
+        BoxGeometry,
+        SphereGeometry,
+        MeshLambertMaterial,
+        Mesh,
+        PointLight,
+        AmbientLight,
+        OrthographicCamera,
+        WebGLRenderer,
+    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
+    
+    const scene = new Scene // 创建场景对象
+    
+    // 创建网络模型
+    const geometry =  new BoxGeometry(150, 100, 100) //创建一个立方体几何对象
+    const material = new MeshLambertMaterial({
+        color: 0x0000ff
+    })// 创建材质对象
+    const mesh = new Mesh(geometry, material) // 创建网格模型对象
+    mesh.position.set(100, 0, 0) 
+    scene.add(mesh) //将网格对象添加到场景中
+
+    const sphereGeometry = new SphereGeometry(60, 40, 40)
+    const sphereMaterial = new MeshLambertMaterial({
+        color: 0x00ff00
+    })// 创建材质对象
+    const sphereMesh = new Mesh(sphereGeometry, sphereMaterial) // 创建网格模型对象
+    sphereMesh.position.set(-100, 0, 0) 
+    scene.add(sphereMesh) //将网格对象添加到场景中
+    // 光源设置
+    const point = new PointLight(0xffffff) //创建点光源
+    point.position.set(400, 200, 300) //设置点光源的位置
+    scene.add(point) //将点光源添加到场景中
+
+    const ambient = new AmbientLight(0x444444) // 创建环境光
+    scene.add(ambient) //将环境光添加到场景中
+
+    // 相机设置相关
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const k = width/height
+    const s = 200 //三维场景显示范围控制系数，系数越大，显示范围越大
+
+    const camera = new OrthographicCamera(-s * k, s * k, s, -s, 1, 1000)//创建相机
+    camera.position.set(40,100,100)//设置相机位置
+    camera.lookAt(scene.position)
+
+    // 创建渲染器对象
+
+    const renderer = new WebGLRenderer
+    renderer.setSize(width, height) //设置渲染区域尺寸
+    renderer.setClearColor(0xb9d3ff, 1)//设置背景颜色
+    document.querySelector('#WebGL-output').appendChild(renderer.domElement)
+    renderer.render(scene, camera)
+</script>
+</html>
