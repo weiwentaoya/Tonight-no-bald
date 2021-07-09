@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="WebGL-output"></div>
+</body>
+<script type="module">
+    import { 
+        Scene, 
+        AxisHelper,
+        BoxGeometry,
+        SphereGeometry,
+        CylinderGeometry,
+        MeshLambertMaterial,
+        MeshPhongMaterial,
+        Mesh,
+        PointLight,
+        AmbientLight,
+        OrthographicCamera,
+        WebGLRenderer,
+    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
+    
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js';
+    
+    const scene = new Scene // 创建场景对象
+    
+    // 辅助三维坐标系
+    const axisHelper = new AxisHelper(350)
+    scene.add(axisHelper)
+    // 创建网络模型
+    const geometry1 =  new BoxGeometry(150, 100, 100) //创建一个立方体几何对象
+    const material1 = new MeshLambertMaterial({
+        color: 0x0000ff,
+    })// 创建材质对象
+    const mesh1 = new Mesh(geometry1, material1) // 创建网格模型对象
+    mesh1.position.set(100, 0, 0) 
+    scene.add(mesh1) //将网格对象添加到场景中
+
+    const geometry2 = new SphereGeometry(60, 10, 14) //创建一个球体
+    const material2 = new MeshPhongMaterial({
+        color: 0x00ff00,
+    })// 创建材质对象
+    const mesh2 = new Mesh(geometry2, material2) // 创建网格模型对象
+    mesh2.position.set(-100, 0, 0) 
+    scene.add(mesh2) //将网格对象添加到场景中
+
+    const geometry3 = new CylinderGeometry(50, 50, 100, 25) // 创建一个圆柱体
+    const material3 = new MeshLambertMaterial({
+        color: 0xffff00
+    })// 创建材质对象
+    const mesh3 = new Mesh(geometry3, material3) // 创建网格模型对象
+    mesh3.position.set(0, 0, 150) 
+    scene.add(mesh3) //将网格对象添加到场景中
+    
+    // 光源设置
+    const point = new PointLight(0xffffff) //创建点光源
+    point.position.set(400, 200, 300) //设置点光源的位置
+    scene.add(point) //将点光源添加到场景中
+
+    const ambient = new AmbientLight(0x444444) // 创建环境光
+    scene.add(ambient) //将环境光添加到场景中
+
+    // 相机设置相关
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const k = width/height
+    const s = 200 //三维场景显示范围控制系数，系数越大，显示范围越大
+
+    const camera = new OrthographicCamera(-s * k, s * k, s, -s, 1, 1000)//创建相机
+    camera.position.set(40,300,200)//设置相机位置
+    camera.lookAt(scene.position)
+
+    // 创建渲染器对象
+
+    const renderer = new WebGLRenderer
+    renderer.setSize(width, height) //设置渲染区域尺寸
+    renderer.setClearColor(0xb9d3ff, 1)//设置背景颜色
+    document.querySelector('#WebGL-output').appendChild(renderer.domElement)
+    // render()
+    // const controls = new OrbitControls(camera, renderer.domElement)
+    // controls.addEventListener('change', render)
+    // function render() {
+    //     renderer.render(scene, camera)
+    // }
+
+    const controls = new OrbitControls(camera, renderer.domElement)
+    !(function render(params) {
+        renderer.render(scene, camera)
+        requestAnimationFrame(render)
+    })()
+</script>
+</html>
