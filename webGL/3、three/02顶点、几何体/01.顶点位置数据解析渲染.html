@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="WebGL-output"></div>
+</body>
+<script type="module">
+    import { 
+        Scene, 
+        BoxGeometry,
+        BufferGeometry,
+        BufferAttribute,
+        SphereGeometry,
+        MeshLambertMaterial,
+        Mesh,
+        PointLight,
+        AmbientLight,
+        OrthographicCamera,
+        WebGLRenderer,
+        MeshBasicMaterial,
+        DoubleSide,
+    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js';
+    
+    const scene = new Scene // 创建场景对象
+    const geometry = new BufferGeometry
+    const vertices = new Float32Array([
+        0,0,0,
+        50,0,0,
+        0,100,0,
+
+        0,0,10,
+        0,0,100,
+        50,0,10
+    ])
+    const attribue = new BufferAttribute(vertices, 3)
+    geometry.attributes.position = attribue
+    const material = new MeshBasicMaterial({
+        color: 0xff0000,
+        // side:DoubleSide
+    })// 创建材质对象
+    
+    const mesh = new Mesh(geometry, material) // 创建网格模型对象
+    mesh.position.set(0, 0, 0) 
+    scene.add(mesh)
+
+    // 相机设置相关
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const k = width/height
+    const s = 200 //三维场景显示范围控制系数，系数越大，显示范围越大
+
+    const camera = new OrthographicCamera(-s * k, s * k, s, -s, 1, 1000)//创建相机
+    camera.position.set(0,50,50)//设置相机位置
+    camera.lookAt(scene.position)
+
+    // 创建渲染器对象
+    const renderer = new WebGLRenderer
+    renderer.setSize(width, height) //设置渲染区域尺寸
+    renderer.setClearColor(0xb9d3ff, 1)//设置背景颜色
+    document.querySelector('#WebGL-output').appendChild(renderer.domElement)
+    const controls = new OrbitControls(camera, renderer.domElement)
+    !(function render(params) {
+        renderer.render(scene, camera)
+        requestAnimationFrame(render)
+    })()
+</script>
+</html>
