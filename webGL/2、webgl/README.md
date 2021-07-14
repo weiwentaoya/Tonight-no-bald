@@ -446,7 +446,34 @@ gl.blendFunc(sfactor, dfactor).  定义了一个用于混合像素算法的函�
 
 可以一次性地向着色器传入多个顶点的数据。缓冲区在webgl中是一块内存区域，我们可以一次性地向缓冲区对象中填充大量的顶点数据，然后将这些数据保存在其中，供顶点着色器使用。
 
+```js
+//顶点数据
+const vertices = new Float32Array([
+    0, 0.2, 0,
+    -0.2, -0.1, 0,
+    0.2, -0.1, 0,
+]);
+//缓冲对象
+const vertexBuffer = gl.createBuffer();
+//绑定缓冲对象
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+//写入数据
+gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+//获取attribute 变量
+const a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+//修改attribute 变量
+gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0)
+//赋能-批处理
+gl.enableVertexAttribArray(a_Position)
+```
+
 ### gl.createBuffer
+
+创建并初始化一个用于储存顶点数据或着色数据的[`WebGLBuffer`](https://developer.mozilla.org/zh-CN/docs/Web/API/WebGLBuffer)对象
+
+```js
+gl.createBuffer();
+```
 
 gl.createBuffer() 方法可创建并初始化一个用于储存顶点数据或着色数据的WebGLBuffer对象
 

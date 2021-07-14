@@ -37,10 +37,20 @@
         0,0,100,
         50,0,10
     ])
+    const normals = new Float32Array([
+        0, 0, 1, //顶点1法向量
+        0, 0, 1, //顶点2法向量
+        0, 0, 1, //顶点3法向量
+
+        0, 1, 0, //顶点4法向量
+        0, 1, 0, //顶点5法向量
+        0, 1, 0, //顶点6法向量
+    ]);
     geometry.attributes.position =  new BufferAttribute(vertices, 3)
+    // geometry.attributes.normal =  new BufferAttribute(normals, 3)
     const material = new MeshBasicMaterial({
         color: 0x0000ff,
-        // side:DoubleSide
+        side:DoubleSide
     })// 创建材质对象
     
     const mesh = new Mesh(geometry, material) // 创建网格模型对象

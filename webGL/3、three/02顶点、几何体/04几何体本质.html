@@ -18,28 +18,27 @@
         SphereGeometry,
         MeshLambertMaterial,
         Mesh,
+        Points,
+        Line,
         PointLight,
         AmbientLight,
         OrthographicCamera,
         WebGLRenderer,
         MeshBasicMaterial,
+        PointsMaterial,
+        LineBasicMaterial,
         DoubleSide,
+        AxisHelper
     } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
     // import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js';
     const scene = new Scene // 创建场景对象
-    const geometry = new BufferGeometry
-    const vertices = new Float32Array([
-        0,0,0,
-        50,0,0,
-        0,100,0,
-
-        0,0,10,
-        0,0,100,
-        50,0,10
-    ])
-    geometry.attributes.position =  new BufferAttribute(vertices, 3)
-    const material = new MeshBasicMaterial({
+    const axisHelper = new AxisHelper(500)
+    scene.add(axisHelper)
+    const geometry = new BoxGeometry(50, 50, 50)
+    const material = new MeshLambertMaterial({
         color: 0x0000ff,
+        wireframe:true
+        // size: 10,
         // side:DoubleSide
     })// 创建材质对象
     
@@ -47,23 +46,14 @@
     mesh.position.set(0, 0, 0) 
     scene.add(mesh)
 
-    // 光源设置
-    const point = new PointLight(0xffffff) //创建点光源
-    point.position.set(400, 200, 300) //设置点光源的位置
-    scene.add(point) //将点光源添加到场景中
-
-    const ambient = new AmbientLight(0x444444) // 创建环境光
-    scene.add(ambient) //将环境光添加到场景中
-
-
     // 相机设置相关
     const width = window.innerWidth
     const height = window.innerHeight
     const k = width/height
-    const s = 200 //三维场景显示范围控制系数，系数越大，显示范围越大
+    const s = 150 //三维场景显示范围控制系数，系数越大，显示范围越大
 
     const camera = new OrthographicCamera(-s * k, s * k, s, -s, 1, 1000)//创建相机
-    camera.position.set(10,50,50)//设置相机位置
+    camera.position.set(10,20,50)//设置相机位置
     camera.lookAt(scene.position)
 
     // 创建渲染器对象
