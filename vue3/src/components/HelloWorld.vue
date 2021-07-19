@@ -4,7 +4,9 @@
   <p>{{counter}}</p>
   <p>{{doubleCounter}}</p>
   <p ref="desc"></p>
+  <!-- 传送门 -->
   <ModelButton></ModelButton>
+  <!-- emits -->
   <Emits @click="clickMe"></Emits>
 </template>
 
