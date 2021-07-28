@@ -316,6 +316,8 @@ patch是打补丁的意思，主要是做挂载和更新
 
 ```
 
+###### 挂载组件
+
 mountComponent挂载组件
 
 ```ts
@@ -359,6 +361,32 @@ const setupRenderEffect = (instance, initialVNode, container, anchor, parentSusp
 ```
 
 当组件的数据变化时effect函数包裹的内部渲染函数componentEffect会重新执行一遍，从而执行渲染组件的目的
+
+###### 更新组件
+
+updateComponent更新组件
+
+```ts
+const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
+    const instance = (n2.component = n1.component)!
+    //根据新旧子组件vnode判断是否需要更新子组件
+    if (shouldUpdateComponent(n1, n2, optimized)) {
+        // 把新的子组件vnode赋值给instance.next
+        instance.next = n2
+        // 子组件也可能因为数据变化被添加到更新队列中，移除防止对子组件重复更新
+        invalidateJob(instance.update)
+        // instance.update 执行子组件的update副作用渲染函数
+        instance.update()
+    } else {
+      // 不需要更新，只复制属性
+      n2.component = n1.component
+      n2.el = n1.el
+      instance.vnode = n2
+    }
+  }
+```
+
+shouldUpdateComponent函数，根据新旧子组件vnode来判断是否需要更新子组件。shouldUpdateComponent函数的内部，只要是通过检测和对比组件vnode的props、children、dirs、transtion等属性，来决定子组件是否需要更新，而组件的更新就是执行组件挂载时创建的副作用函数
 
 ##### 处理普通 DOM 元素
 
