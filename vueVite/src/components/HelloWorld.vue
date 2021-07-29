@@ -12,7 +12,8 @@
         <template v-slot:default="">default</template>
         <template v-slot:footer="">footer</template>
       </Render> -->
-      <Functional text="Functional:text" v-model:count="count">这里是slot</Functional>
+      <!-- <Functional text="Functional:text" v-model:count="count">这里是slot</Functional> -->
+      <RefFunction ></RefFunction>
     </div>
 </template>
 
@@ -23,6 +24,7 @@ import FragmentsEmits from "./03FragmentsEmits.vue";
 import CustomRenderer from "./04CustomRenderer.vue";
 import Vmodel from "./05vmodel.vue";
 import Functional from "./06Functional.js";
+import RefFunction from "./07RefFunction.vue";
 import { h } from 'vue'
 export default {
   name: 'HelloWorld',
@@ -33,6 +35,7 @@ export default {
     CustomRenderer,
     Vmodel,
     Functional,
+    RefFunction,
     Render: {
       props: {
         count: {
