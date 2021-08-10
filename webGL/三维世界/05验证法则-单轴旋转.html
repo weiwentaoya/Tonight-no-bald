@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="WebGL-output"></div>
+</body>
+<script type="module">
+    import { 
+        Scene, 
+        Group,
+        Matrix4,
+        Object3D,
+        Vector3
+    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
+    
+    //宇宙坐标系m1
+    const m = new Matrix4
+    const angle = 30 * Math.PI/180
+
+    {
+        m.makeRotationX(angle)
+        console.log(m.elements);
+    }
+
+    {
+        m.makeRotationY(angle)
+        console.log(m.elements);
+    }
+
+    {
+        m.makeRotationZ(angle)
+        console.log(m.elements);
+    }
+</script>
+</html>
