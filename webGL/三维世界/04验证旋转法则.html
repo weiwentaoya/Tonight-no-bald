@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+
+    </body>
+    <script type="module">
+    import { 
+        Scene, 
+        Group,
+        Matrix4,
+        Object3D,
+        Vector3,
+        Euler
+    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
+
+    const [angle2,angle3] = [20* Math.PI/180, 30* Math.PI/180]
+    const [c2,s2,c3,s3]= [Math.cos(-angle2),Math.sin(-angle2),Math.cos(angle3),Math.sin(angle3)]
+    // 创建宇宙坐标m1
+    const m1 = new Matrix4()
+    m1.elements = [
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        0,0,0,1
+    ]
+
+    // 创建银河系坐标m2
+    const m2 = new Matrix4()
+    // m2.elements = [
+    //     c2, 0,s2,0,
+    //     0,  1,0 ,0,
+    //     -s2,0,c2,0,
+    //     1,2,3,1
+    // ]
+    m2.makeRotationY(angle2)
+    m2.setPosition(1,2,3)
+
+    // 创建太阳系坐标m3
+    const m3 = new Matrix4()
+    // m3.elements = [
+    //     c3, s3,0,0,
+    //     -s3,c3,0,0,
+    //     0,  0, 1,0,
+    //     4,  5, 6,1
+    // ]
+    m3.makeRotationZ(angle3)
+    m3.setPosition(4,  5, 6)
+    // 设置地球的坐标
+    const p1 = new Vector3(7,8,9)
+
+    const universe = new Scene
+    universe.applyMatrix4(m1)
+
+    const galaxy = new Group
+    galaxy.applyMatrix4(m2)
+
+    const solar = new Group
+    solar.applyMatrix4(m3)
+
+    const earth = new Object3D
+    earth.position.copy(p1)
+
+
+    // 设置包含关系
+    galaxy.add(solar)
+    universe.add(galaxy)
+    solar.add(earth)
+
+
+    const p2 = new Vector3()
+    earth.getWorldPosition(p2)
+    console.log(p2);
+
+</script>
+</html>

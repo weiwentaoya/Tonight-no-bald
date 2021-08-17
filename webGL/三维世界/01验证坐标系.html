@@ -7,7 +7,7 @@
     <title>Document</title>
 </head>
 <body>
-    <div id="WebGL-output"></div>
+    
 </body>
 <script type="module">
     import { 
@@ -15,50 +15,47 @@
         Group,
         Matrix4,
         Object3D,
-        Vector3
+        Vector3,
+        Euler
     } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
-    
-    //宇宙坐标系m1
-    const m1 = new Matrix4
+
+    // 创建宇宙坐标m1
+    const m1 = new Matrix4()
     m1.elements = [
         1,0,0,0,
         0,1,0,0,
         0,0,1,0,
-        0,0,0,1,
+        0,0,0,1
     ]
 
-    // 银河系坐标系m2
-    const m2 = new Matrix4
+    // 创建银河系坐标m2
+    const m2 = new Matrix4()
     m2.elements = [
         1,0,0,0,
         0,1,0,0,
         0,0,1,0,
-        1,2,3,1,
+        1,2,3,1
     ]
 
-    // 太阳在银河系内的本地坐标位置p1(4,5,6)
+    // 设置太阳的坐标
     const p1 = new Vector3(4,5,6)
 
-    // 创建宇宙
     const universe = new Scene
     universe.applyMatrix4(m1)
 
-    // 创建银河系
     const galaxy = new Group
     galaxy.applyMatrix4(m2)
 
-    // 创建太阳
     const sun = new Object3D
     sun.position.copy(p1)
 
-    // 将银河系添加到宇宙中
-    // 将太阳添加到银河系中
-    universe.add(galaxy)
+    // 设置包含关系
     galaxy.add(sun)
+    universe.add(galaxy)
 
-    // 获取太阳在宇宙中的世界位置
-    const p = new Vector3
-    sun.getWorldPosition(p)
-    console.log(p);
+    const p2 = new Vector3()
+    sun.getWorldPosition(p2)
+    console.log(p2);
+
 </script>
 </html>

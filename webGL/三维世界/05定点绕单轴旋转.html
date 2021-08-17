@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+
+    </body>
+    <script type="module">
+    import { 
+        Scene, 
+        Group,
+        Matrix4,
+        Object3D,
+        Vector3,
+        Euler
+    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
+
+    const angle = 30* Math.PI/180
+    
+    // 创建宇宙坐标m1
+    const m = new Matrix4()
+    
+    {
+        m.makeRotationX(angle)
+        console.log(m.elements);
+
+        const s = Math.sin(angle)
+        const c = Math.cos(angle)
+        console.log([
+            1,0,0,0,
+            0,c,s,0,
+            0,-s,c,0,
+            0,0,0,1
+        ]);
+    }
+    {
+        m.makeRotationY(angle)
+        console.log(m.elements);
+        // const s = Math.sin(angle)
+        // const c = Math.cos(angle)
+        const s = Math.sin(-angle)
+        const c = Math.cos(-angle)
+        console.log([
+            c,0,s,0,
+            0,1,0,0,
+            -s,0,c,0,
+            0,0,0,1
+        ]);
+    }
+    {
+        m.makeRotationZ(angle)
+        console.log(m.elements);
+
+        const s = Math.sin(angle)
+        const c = Math.cos(angle)
+        console.log([
+            c,s,0,0,
+            -s,c,0,0,
+            0,0,1,0,
+            0,0,0,1
+        ]);
+    }
+    
+
+</script>
+</html>
