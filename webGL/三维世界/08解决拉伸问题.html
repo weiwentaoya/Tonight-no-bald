@@ -40,9 +40,10 @@
     const [left,rignt,top,bottom,near,far] = [
     halfW, -halfW, halfH, -halfH, 0, 4
     ]
+    console.log(left,rignt,top,bottom,near,far);
     const projectionMatrix = new Matrix4()
     projectionMatrix.makeOrthographic(left,rignt,top,bottom,near,far)
-
+    console.log(projectionMatrix.elements);
 
     const triangle = new Poly({
         gl,
