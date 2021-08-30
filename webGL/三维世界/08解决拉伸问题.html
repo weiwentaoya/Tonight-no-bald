@@ -42,6 +42,7 @@
     ]
     console.log(left,rignt,top,bottom,near,far);
     const projectionMatrix = new Matrix4()
+    debugger
     projectionMatrix.makeOrthographic(left,rignt,top,bottom,near,far)
     console.log(projectionMatrix.elements);
 

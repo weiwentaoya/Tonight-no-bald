@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script type="module">
+    import { 
+        Scene, 
+        Group,
+        Matrix4,
+        Object3D,
+        Vector3,
+        Euler,
+        PerspectiveCamera
+    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.js"
+    canvas.width= window.innerWidth;
+    canvas.height= window.innerHeight;
+    // 创建宇宙坐标m1
+    const [fov,aspect,near,far]=[
+        90,
+        2,
+        1,
+        20
+    ]
+    const camera = new PerspectiveCamera(fov,aspect,near,far)
+    console.log(camera);
+    // updateProjectionMatrix() {
+    //     const near = this.near;
+    //     //近裁剪面上边界
+    //     let top = near * Math.tan( MathUtils.DEG2RAD * 0.5 * this.fov ) / this.zoom;
+    //     //近裁剪面高度
+    //     let height = 2 * top;
+    //     //近裁剪面宽度
+    //     let width = this.aspect * height;
+    //     //近裁剪面左边界
+    //     let left = - 0.5 * width;
+    //     //默认为null
+    //     const view = this.view;
+    //     //基于近裁剪面边界、近裁剪面和远裁剪面到相机视点的距离设置投影矩阵
+    //     this.projectionMatrix.makePerspective( left, left + width, top, top - height, near, this.far );
+
+    //     //投影矩阵的逆矩阵
+    //     this.projectionMatrixInverse.copy( this.projectionMatrix ).invert();
+
+    // }
+</script>
+</html>
