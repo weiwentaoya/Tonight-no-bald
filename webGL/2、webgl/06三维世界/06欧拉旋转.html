@@ -21,7 +21,10 @@
     }
     {
         const euler = new Euler(angX, angY, angZ)
-        const m = new Matrix4().makeRotationFromEuler(euler)
+        console.log(euler);
+        debugger
+        const m = new Matrix4()
+        m.makeRotationFromEuler(euler)
         console.log(m.elements);
     }
 </script>
