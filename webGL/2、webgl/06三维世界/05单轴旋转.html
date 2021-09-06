@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script type="module">
+    import { Scene, Group, Matrix4, Object3D, Vector3 } from "https://unpkg.com/three/build/three.module.js"
+    const angle3 = 30* Math.PI/180
+    const m = new Matrix4()
+    {
+        m.makeRotationX(angle3)
+        console.log(m.elements);
+        const c = Math.cos(angle3)
+        const s = Math.sin(angle3)
+        console.log([
+            1,0,0,0,
+            0,c,s,0,
+            0,-s,c,0,
+            0,0,0,1,
+        ]);
+    }
+    {
+        m.makeRotationY(angle3)
+        console.log(m.elements);
+        const c = Math.cos(-angle3)
+        const s = Math.sin(-angle3)
+        console.log([
+            c,0,s,0,
+            0,1,0,0,
+            -s,0,c,0,
+            0,0,0,1,
+        ]);
+    }
+    {
+        m.makeRotationZ(angle3)
+        console.log(m.elements);
+        const c = Math.cos(angle3)
+        const s = Math.sin(angle3)
+        console.log([
+            c,s,0,0,
+            -s,c,0,0,
+            0,0,1,0,
+            0,0,0,1,
+        ]);
+    }
+</script>
+</html>

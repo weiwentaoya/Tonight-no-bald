@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script type="module">
+    import { Scene, Group, Matrix4, Object3D, Vector3, Euler } from "https://unpkg.com/three/build/three.module.js"
+    const [angX, angY, angZ] = [1, 2, 3]
+
+    {
+        const mx = new Matrix4().makeRotationX(angX)
+        const my = new Matrix4().makeRotationY(angY)
+        const mz = new Matrix4().makeRotationZ(angZ)
+        console.log(mx.multiply(my).multiply(mz).elements);
+    }
+    {
+        const euler = new Euler(angX, angY, angZ)
+        const m = new Matrix4().makeRotationFromEuler(euler)
+        console.log(m.elements);
+    }
+</script>
+</html>

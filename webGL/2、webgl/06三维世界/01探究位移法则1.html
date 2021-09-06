@@ -10,52 +10,45 @@
     
 </body>
 <script type="module">
-    import { 
-        Scene, 
-        Group,
-        Matrix4,
-        Object3D,
-        Vector3,
-        Euler
-    } from "https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.module.min.js"
-
-    // 创建宇宙坐标m1
+    import { Scene, Group, Matrix4, Object3D, Vector3 } from "https://unpkg.com/three/build/three.module.js"
+    // 创建宇宙坐标
     const m1 = new Matrix4()
-    m1.elements = [
+    m1.elements=[
         1,0,0,0,
         0,1,0,0,
         0,0,1,0,
         0,0,0,1
     ]
-
-    // 创建银河系坐标m2
+    // 创建银河系坐标
     const m2 = new Matrix4()
-    m2.elements = [
+    m2.elements=[
         1,0,0,0,
         0,1,0,0,
         0,0,1,0,
         1,2,3,1
     ]
 
-    // 设置太阳的坐标
-    const p1 = new Vector3(4,5,6)
+    // 创建太阳坐标位
+    const p = new Vector3(4,5,6)
 
-    const universe = new Scene
+    // 创建宇宙
+    const universe = new Scene()
     universe.applyMatrix4(m1)
-
-    const galaxy = new Group
+    
+    // 创建银河系
+    const galaxy = new Group()
     galaxy.applyMatrix4(m2)
 
-    const sun = new Object3D
-    sun.position.copy(p1)
+    // 创建太阳
+    const sun = new Object3D()
+    sun.position.copy(p)
 
     // 设置包含关系
-    galaxy.add(sun)
     universe.add(galaxy)
+    galaxy.add(sun)
 
-    const p2 = new Vector3()
-    sun.getWorldPosition(p2)
-    console.log(p2);
-
+    const p1 = new Vector3()
+    sun.getWorldPosition(p1)
+    console.log(p1);
 </script>
 </html>
