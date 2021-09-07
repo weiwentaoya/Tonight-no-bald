@@ -4,7 +4,7 @@ three.js
 /dist
 /code
 /test
-/threejs
+
 
 # local env files
 .env.local
