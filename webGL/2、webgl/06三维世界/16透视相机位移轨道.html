@@ -12,7 +12,7 @@
 <script type="module">
     import { initShaders } from "./utils/utils.js"
     import Poly from "./utils/Poly.js"
-    import { OrthographicCamera ,Matrix4, Vector3, Vector2, Spherical } from "https://unpkg.com/three/build/three.module.js"
+    import { OrthographicCamera ,Matrix4, Vector3, Vector2, PerspectiveCamera } from "https://unpkg.com/three/build/three.module.js"
     const VSHADER_SOURCE = `
         attribute vec4 a_Position;
         uniform mat4 u_PvMatrix;
@@ -37,21 +37,20 @@
     gl.clearColor(0, 0, 0, 1);
     // 清空canvas
     gl.clear(gl.COLOR_BUFFER_BIT);
-
-    const eye = new Vector3(0, 0.5, 2)
-    const target = new Vector3(0, 0, -3)
-    const up = new Vector3(0, 1, 1)
-    const H = 2;
-    const ratio = canvas.width/canvas.height
-    const W = H * ratio
-    const [left,right,top,bottom,near,far] = [ -W, W, H, -H, 1, 8]
-    const camera = new OrthographicCamera(left,right,top,bottom,near,far)
+    const [fov, aspect, near, far] = [
+        45,
+        canvas.width / canvas.height,
+        1,
+        20
+    ]
+    const eye = new Vector3(0,0.5,1)
+    const target = new Vector3(0,0,-2.5)
+    const camera = new PerspectiveCamera(fov, aspect, near, far)
     camera.position.copy(eye)
     camera.lookAt(target)
     camera.updateWorldMatrix(true)
-    const pvMatrix = new Matrix4()
-
-    pvMatrix.multiplyMatrices(
+    const PvMatrix = new Matrix4()
+    PvMatrix.multiplyMatrices(
         camera.projectionMatrix,
         camera.matrixWorldInverse
     )
@@ -114,33 +113,27 @@
                 },
                 u_PvMatrix: {
                     type: 'uniformMatrix4fv',
-                    value: pvMatrix.elements
+                    value: PvMatrix.elements
                 },
             }
         })
     }
+    init()
 
     const [dragStart, dragEnd] = [new Vector2, new Vector2]
     let state = 'none'
     const mouseButtons = new Map([
-        [2, 'pan'],
-        [0, 'rotate']
+        [2, 'pan']
     ])
-    const screenSpacePanning = false
+    const screenSpacePanning = true
     const offset = new Vector3
     const zoomScale = 0.95
-    const spherical = new Spherical()
-    spherical.setFromVector3(
-        camera.position.clone().sub(target)
-    )
-    const rotateDir = 'xy'
-    const pi2 = Math.PI * 2
-    init()
-
     function init() {
         render()
         bindEvent()
+        const {fov,position,aspect } = camera
         console.log(camera);
+       
     }
     function bindEvent() {
         canvas.addEventListener('contextmenu',e=>{
@@ -159,9 +152,6 @@
                 case 'pan':
                     pan(dragEnd.clone().sub(dragStart))
                     break;
-                case 'rotate':
-                    rotate(dragEnd.clone().sub(dragStart))
-                    break;
                 default:
                     break;
             }
@@ -172,74 +162,49 @@
             console.log(deltaY);
             if (deltaY>0) {
                 // 向下变小0.95
-                camera.zoom *= zoomScale
+                camera.position.lerp(target, 1 - zoomScale)
+                // camera.zoom *= zoomScale
             }else{
                 // 向上变大1.05
-                camera.zoom *= 1/zoomScale
+                camera.position.lerp(target, 1 - 1/zoomScale)
+                // camera.zoom *= 1/zoomScale
             }
             camera.updateProjectionMatrix()
             undate()
         })
     }
-    function rotate({x,y}) {
-        const {clientHeight, clientWidth} = canvas;
-        const [deltat, deltap] = [pi2 * x/clientHeight, pi2 * y/clientHeight]
-        if (rotateDir.includes('x')) {
-            spherical.theta -= deltat
-            
-        }
-        if (rotateDir.includes('y')) {
-            const phi = spherical.phi - deltap
-            spherical.phi = Math.min(
-                Math.max(phi, 0.005),
-                Math.PI *0.995
-            )
-        }
-
-
-        undate()
-        // pi2 * x/clientHeight
-    }
     function pan({x,y}) {
-      const {left,right,top,bottom,near,far} = camera;
-      const {clientHeight, clientWidth} = canvas;
-      const ratioH = y/clientHeight
-      const ratioW = x/clientWidth
-      const distanceLeft = (top-bottom) * ratioH
-      const distanceHeight = (right-left) * ratioW
+        const {fov,position,aspect} = camera;
+        const {clientHeight, clientWidth} = canvas;
+        const ratioH = y/clientHeight
+        const ratioW = x/clientWidth
+    
+        const L = position.clone().sub(target).length()
+        const H = Math.tan(fov/2*180)*L
+        const W = H * aspect
+        const distanceLeft =W*ratioH
+        const distanceHeight = H * ratioW
 
-      const mx = new Vector3().setFromMatrixColumn(camera.matrix, 0)
-      const vx = mx.clone().multiplyScalar(-distanceHeight)
-      const my = new Vector3()
-      if (screenSpacePanning) {
-        my.setFromMatrixColumn(camera.matrix, 1)
-      }else{
-        my.crossVectors(camera.up, mx)
-      }
-      const vy = my.clone().multiplyScalar(distanceLeft)
-      offset.copy(vx.add(vy))
-      undate()
+        const mx = new Vector3().setFromMatrixColumn(camera.matrix, 0)
+        const my = new Vector3()
+        if (screenSpacePanning) {
+            my.setFromMatrixColumn(camera.matrix, 1)
+        }else{
+            my.crossVectors(camera.up, mx)
+        }
+        const vx = mx.clone().multiplyScalar(-distanceHeight)
+        const vy = my.clone().multiplyScalar(distanceLeft)
+        offset.copy(vx.add(vy))
+        undate()
     }
     function undate() {
         camera.position.add(offset)
         target.add(offset)
-
-        const rotateOffset = new Vector3()
-        .setFromSpherical(spherical)
-
-        camera.position.copy(
-            target.clone().add(rotateOffset)
-        )
-
         camera.lookAt(target)
         camera.updateWorldMatrix(true)
-        pvMatrix.multiplyMatrices(
+        PvMatrix.multiplyMatrices(
             camera.projectionMatrix,
             camera.matrixWorldInverse
-        )
-
-        spherical.setFromVector3(
-            camera.position.clone().sub(target)
         )
         render()
     }

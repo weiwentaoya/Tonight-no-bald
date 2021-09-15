@@ -1,45 +1,66 @@
 # Vue源码阅读
 
-![生命周期图示)](https://cn.vuejs.org/images/lifecycle.png)
+<img src="https://cn.vuejs.org/images/lifecycle.png" alt="生命周期图示" style="zoom: 50%;" />
 
-## 源码中所有打包的配置
+## 结构目录说明
 
-code/vue-dev/scripts/config.js
+- 源码中所有打包的配置：scripts/config.js
+- 编译器：src/compiler
+- 核心代码：src/core
+  - 通用组件：src/core/components（KeepAlive）
+  - 全局API：src/core/global-api（mixin、use...）
+  - 构造函数：src/core/instance（Vue 构造函数）
+  - 响应式相关：src/core/observer（Observer、Watcher、Dep、修改数组原型）
+  - 全局函数定义：src/core/util（nextTick...）
+  - 虚拟DOM：src/core/vdom
+- 入口处：src/platforms/web (平台特有代码)
 
-## 入口文件
 
-code/vue-dev/src/platforms/web/entry-runtime-with-compiler.js
 
-- $mount下优先级为.     render > template > el
-- 扩展$mount方法
-- 在这里可以通过compileToFunctions编译方法拿到 render渲染函数, staticRenderFns静态渲染函数
+## 初始化流程
 
-code/vue-dev/src/platforms/web/runtime/index.js
+```js
+function Vue (options) {
+  if (process.env.NODE_ENV !== 'production' &&
+    !(this instanceof Vue)
+  ) {
+    warn('Vue is a constructor and should be called with the `new` keyword')
+  }
+  this._init(options) // 初始化流程执行了_init方法
+}
 
-- __patch__布丁函数
+initMixin(Vue) // 挂载_init方法
+stateMixin(Vue)
+eventsMixin(Vue)
+lifecycleMixin(Vue)
+renderMixin(Vue)
+```
 
-- 在Vue实例上挂载$mount方法
-- mountComponent挂载执行
+### initMixin
 
-code/vue-dev/src/core/index.js
+```js
+vm._self = vm
+initLifecycle(vm) // 初始化生命周期
+initEvents(vm) // 初始化事件
+initRender(vm)
+callHook(vm, 'beforeCreate')
+initInjections(vm) // resolve injections before data/props
+initState(vm)
+initProvide(vm) // resolve provide after data/props
+callHook(vm, 'created')
 
-- 执行了initGlobalAPI方法，挂载了全局方法
+if (vm.$options.el) {
+  vm.$mount(vm.$options.el) // 执行了$mount方法
+}
+```
 
-code/vue-dev/src/core/global-api/index.js
 
-- 全局方法入口
 
-## Vue实例
+挂载_init方法中
 
-code/vue-dev/src/core/instance/index.js 
 
-- vue构造函数，并且执行了被混入的_init()方法
-- initMixin   code/vue-dev/src/core/instance/init.js
-  - mergeOptions 合并用户传入的选项和默认的选项
-  - 核心的初始化逻辑
-  - 声明周期的钩子beforeCreate、created
-  - 初始化事件，data，事件，组件属性等
-- stateMixin
-- eventsMixin
-- lifecycleMixin
-- renderMixin
+
+## 入口
+
+src/platforms/web
+
