@@ -11,9 +11,9 @@
 </body>
 <script type="module">
     import { initShaders } from "./utils/utils.js"
-    import OrbitControls from "./utils/OrbitControls.js"
     import Poly from "./utils/Poly.js"
-    import { OrthographicCamera ,Matrix4, Vector3, Vector2, PerspectiveCamera, Spherical } from "https://unpkg.com/three/build/three.module.js"
+    import { OrthographicCamera ,Matrix4, Vector3, Vector2, Spherical } from "https://unpkg.com/three/build/three.module.js"
+    import OrbitControls from "./utils/OrbitControls.js"
     const VSHADER_SOURCE = `
         attribute vec4 a_Position;
         uniform mat4 u_PvMatrix;
@@ -38,19 +38,20 @@
     gl.clearColor(0, 0, 0, 1);
     // 清空canvas
     gl.clear(gl.COLOR_BUFFER_BIT);
-    const [fov, aspect, near, far] = [
-        45,
-        canvas.width / canvas.height,
-        1,
-        20
-    ]
-    const eye = new Vector3(0,0.5,1)
-    const target = new Vector3(0,0,-2.5)
-    const camera = new PerspectiveCamera(fov, aspect, near, far)
+
+    const eye = new Vector3(0, 0.5, 2)
+    const target = new Vector3(0, 0, -3)
+    const up = new Vector3(0, 1, 1)
+    const H = 2;
+    const ratio = canvas.width/canvas.height
+    const W = H * ratio
+    const [left,right,top,bottom,near,far] = [ -W, W, H, -H, 1, 8]
+    const camera = new OrthographicCamera(left,right,top,bottom,near,far)
     camera.position.copy(eye)
     camera.lookAt(target)
     camera.updateWorldMatrix(true)
     const PvMatrix = new Matrix4()
+
     PvMatrix.multiplyMatrices(
         camera.projectionMatrix,
         camera.matrixWorldInverse
@@ -119,13 +120,14 @@
             }
         })
     }
-    
-    const controls = new OrbitControls({camera,dom: canvas, PvMatrix})
+    const controls = new OrbitControls({camera,dom: canvas})
     !(function animation() {
         PvMatrix.copy(controls.getPvMatrix())
-        // console.log(PvMatrix.elements);
         render()
         requestAnimationFrame(animation)
     })()
+    
+    
+    
 </script>
 </html>

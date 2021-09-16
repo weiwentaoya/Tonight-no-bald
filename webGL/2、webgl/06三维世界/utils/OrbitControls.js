@@ -1,5 +1,6 @@
 import { Vector3,Spherical,Matrix4 } from 'https://unpkg.com/three/build/three.module.js';
 const pvMatrix=new Matrix4()
+const PI2 =  Math.PI * 2
 const attr = ()=>({
     camera: null,
     dom: null,
@@ -14,7 +15,8 @@ const attr = ()=>({
     spherical : new Spherical,
     target: new Vector3(0,0,-2.5),
     zoomScale: 0.95,
-    screenSpacePanning: true
+    screenSpacePanning: true,
+    rotateDir: 'xy'
 })
 export default class OrbitControls{
     constructor(options){
@@ -23,6 +25,8 @@ export default class OrbitControls{
     }
     init(){
         const {camera,dom} = this
+        console.log(camera.isPerspectiveCamera);
+        
         if (!camera||!dom) return
         this.initSpherical()
         this.bindEvent()
@@ -63,16 +67,22 @@ export default class OrbitControls{
         dragStart.copy(dragEnd)
     }
     pan({x,y}){
-        const {fov,position,aspect} = this.camera;
+        const {left,right,top,bottom,fov,position,aspect,isPerspectiveCamera} = this.camera;
         const {clientHeight, clientWidth} = this.dom;
         const ratioH = y/clientHeight
         const ratioW = x/clientWidth
         const L = position.clone().sub(this.target).length()
         const H = Math.tan(fov/2*180)*L
         const W = H * aspect
-        const distanceLeft =W*ratioH
-        const distanceHeight = H * ratioW
-
+        let distanceLeft 
+        let distanceHeight
+        if (isPerspectiveCamera) {
+            distanceLeft =W*ratioH
+            distanceHeight = H * ratioW
+        }else{
+            distanceLeft = (top-bottom) * ratioH
+            distanceHeight =  (right-left) * ratioW
+        }
         const mx = new Vector3().setFromMatrixColumn(this.camera.matrix, 0)
         const my = new Vector3()
         if (this.screenSpacePanning) {
@@ -85,26 +95,39 @@ export default class OrbitControls{
         this.panOffset.copy(vx.add(vy))
         this.update()
     }
-    rotate(){
-
+    rotate({x,y}){
+        const {dom:{clientHeight, clientWidth},spherical,rotateDir} = this;
+        const deltaT = PI2 * x/clientHeight
+        const deltaP = PI2 * y/clientHeight
+        console.log(spherical);
+        
+        // spherical.theta -= deltaT
+        if (rotateDir.includes('x')) {
+            spherical.theta -= deltaT
+        }
+        if (rotateDir.includes('y')) {
+            const phi = spherical.phi - deltaP
+            spherical.phi = Math.min(
+                Math.max(phi, 0.005),
+                Math.PI *0.995
+            )
+        }
+        this.update()
     }
     onMousewheel({deltaY}){
-        const {camera, target, zoomScale} = this
+        const {camera, target, zoomScale, spherical} = this
         
-        if (deltaY>0) {
-            // 向下变小0.95
-            // this.camera.position.lerp(target, 1 - zoomScale)
-            this.camera.zoom *= zoomScale
+        const delta = deltaY>0?zoomScale:1/zoomScale
+        if (camera.isPerspectiveCamera) {
+            // camera.position.lerp(target, 1 - delta)
+            spherical.radius *= delta
         }else{
-            // 向上变大1.05
-            // this.camera.position.lerp(target, 1 - 1/zoomScale)
-            this.camera.zoom *= 1/zoomScale
+            camera.zoom *=delta
         }
-        this.camera.updateProjectionMatrix()
+        camera.updateProjectionMatrix()
         this.update()
     }
     update(){
-        
         const {
             camera,
             target,
@@ -117,12 +140,15 @@ export default class OrbitControls{
         const rotateOffset = new Vector3()
         rotateOffset.setFromSpherical(spherical)
 
+        
+        // camera.isPerspectiveCamera&&
         camera.position.copy(
             target.clone().add(rotateOffset)
         )
 
         camera.lookAt(target)
         camera.updateWorldMatrix(true)
+
         this.initSpherical()
     }
     getPvMatrix(){
@@ -133,9 +159,10 @@ export default class OrbitControls{
         )
     }
     initSpherical(){
-        const {spherical,camera,target} = this
+        const {panOffset, spherical,camera,target} = this
         spherical.setFromVector3(
             camera.position.clone().sub(target)
         )
+        panOffset.set(0,0,0)
     }
 }

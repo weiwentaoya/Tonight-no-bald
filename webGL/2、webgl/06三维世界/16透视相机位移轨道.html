@@ -160,15 +160,17 @@
         })
         canvas.addEventListener('mousewheel',({deltaY})=>{
             console.log(deltaY);
-            if (deltaY>0) {
-                // 向下变小0.95
-                camera.position.lerp(target, 1 - zoomScale)
-                // camera.zoom *= zoomScale
-            }else{
-                // 向上变大1.05
-                camera.position.lerp(target, 1 - 1/zoomScale)
-                // camera.zoom *= 1/zoomScale
-            }
+            let delta = deltaY>0?zoomScale:1/zoomScale
+            camera.position.lerp(target, 1 - delta)
+            // if (deltaY>0) {
+            //     // 向下变小0.95
+            //     camera.position.lerp(target, 1 - zoomScale)
+            //     // camera.zoom *= zoomScale
+            // }else{
+            //     // 向上变大1.05
+            //     camera.position.lerp(target, 1 - 1/zoomScale)
+            //     // camera.zoom *= 1/zoomScale
+            // }
             camera.updateProjectionMatrix()
             undate()
         })
