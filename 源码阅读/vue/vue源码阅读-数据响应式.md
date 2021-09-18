@@ -200,12 +200,18 @@ function initData (vm: Component) {
 ### observe
 
 ```js
+/**
+*尝试为一个值创建一个观察者实例，
+*如果创建成功，返回新的观察者，
+*如果已经有观察者返回已有的观察者。
+*/
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+    //如果已有观察者实例，则返回
     ob = value.__ob__
   } else if (
     shouldObserve &&
@@ -214,6 +220,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     Object.isExtensible(value) &&
     !value._isVue
   ) {
+    // 添加新的观察者实例
     ob = new Observer(value)
   }
   if (asRootData && ob) {
@@ -233,26 +240,31 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
+    //实例化一个dep
     this.dep = new Dep()
     this.vmCount = 0
+    // 给value添加__ob__
     def(value, '__ob__', this)
-    if (Array.isArray(value)) {
-      if (hasProto) {
+    if (Array.isArray(value)) {//如果value为数组
+      if (hasProto) {//如果有__proto__
+        // 覆盖数组的原型
         protoAugment(value, arrayMethods)
       } else {
+        // 给数组定义七个方法
         copyAugment(value, arrayMethods, arrayKeys)
       }
+      // 设置数组响应式
       this.observeArray(value)
     } else {
       this.walk(value)
     }
   }
 
-  /**
-   * Walk through all properties and convert them into
-   * getter/setters. This method should only be called when
-   * value type is Object.
-   */
+ 	/**
+  * value type为Object情况情况下
+  * 遍历所有属性并将它们转换为
+  * getter / setter。
+  */
   walk (obj: Object) {
     const keys = Object.keys(obj)
     for (let i = 0; i < keys.length; i++) {
@@ -261,7 +273,7 @@ export class Observer {
   }
 
   /**
-   * Observe a list of Array items.
+   * 观察Array项的列表。
    */
   observeArray (items: Array<any>) {
     for (let i = 0, l = items.length; i < l; i++) {
@@ -274,6 +286,7 @@ export class Observer {
 ### defineReactive
 
 ```js
+//定义对象上的响应性属性。
 export function defineReactive (
   obj: Object,
   key: string,
@@ -281,31 +294,42 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 一个key对应一个dep
   const dep = new Dep()
-
+	// 获取对应的属性描述
   const property = Object.getOwnPropertyDescriptor(obj, key)
+  // 如果该属性为不可被改变或者不可被删除 直接return
   if (property && property.configurable === false) {
     return
   }
 
-  // cater for pre-defined getter/setters
+  // 记录 getter 和 setter，获取 val 值
   const getter = property && property.get
   const setter = property && property.set
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
 
-  let childOb = !shallow && observe(val)
+  let childOb = !shallow && observe(val)//递归调用
+  // 定义响应式数据
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter () {
+      // 如果有getter就执行，否则直接返回val
       const value = getter ? getter.call(obj) : val
-      if (Dep.target) {
+      //Dep.target 是类的静态属性（Watcher）   static target: ?Watcher;
+      if (Dep.target) {//如果有Watcher
+        // 这里执行的是Watcher的depend，收集依赖
+        // 把dep添加到Watcher
         dep.depend()
+        // 这里是表示存在子ob
+        // 将子ob也添加到Watcher
         if (childOb) {
           childOb.dep.depend()
+          // 如果是数组
           if (Array.isArray(value)) {
+            // 数组响应式
             dependArray(value)
           }
         }
@@ -313,8 +337,10 @@ export function defineReactive (
       return value
     },
     set: function reactiveSetter (newVal) {
+      // 获取到就得val
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
+      // 如果新的val与旧的val相同，直接return ，不触发响应式
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
       }
@@ -324,12 +350,15 @@ export function defineReactive (
       }
       // #7981: for accessor properties without setter
       if (getter && !setter) return
+      
       if (setter) {
-        setter.call(obj, newVal)
+        setter.call(obj, newVal)// 设置值
       } else {
         val = newVal
       }
+      // 将新值也做响应式处理
       childOb = !shallow && observe(newVal)
+      // 通知依赖更新
       dep.notify()
     }
   })
@@ -355,6 +384,10 @@ function dependArray (value: Array<any>) {
 #### protoAugment
 
 ```js
+/**
+*通过拦截增加目标对象或数组
+*原型链使用__proto__
+*/
 function protoAugment (target, src: Object) {
   /* eslint-disable no-proto */
   target.__proto__ = src
@@ -365,6 +398,10 @@ function protoAugment (target, src: Object) {
 #### copyAugment
 
 ```js
+/**
+*通过定义来增加目标对象或数组
+*隐藏属性。
+*/
 function copyAugment (target: Object, src: Object, keys: Array<string>) {
   for (let i = 0, l = keys.length; i < l; i++) {
     const key = keys[i]
