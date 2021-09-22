@@ -1,6 +1,14 @@
 # initState
 
+**响应式原理的入口**
+
 vue-dev/src/core/instance/state.js
+
+1. 初始化props
+2. 初始化methods
+3. 初始化data
+4. 初始化computed
+5. 初始化watch
 
 ```js
 export function initState (vm: Component) {
@@ -20,13 +28,14 @@ export function initState (vm: Component) {
 }
 ```
 
-1. 初始化props
-2. 初始化methods
-3. 初始化data
-4. 初始化computed
-5. 初始化watch
+
 
 ## initProps
+
+1. 用数组缓存props中的所有key
+2. 遍历props获取默认值
+3. 设置数据响应式
+4. 把当前key代理到vm上
 
 ```js
 function initProps (vm: Component, propsOptions: Object) {
@@ -79,29 +88,15 @@ function initProps (vm: Component, propsOptions: Object) {
 }
 ```
 
-1. 用数组缓存props中的所有key
-2. 遍历props获取默认值
-3. 设置数据响应式
-4. 把当前key代理到vm上
 
-## proxy
-
-```js
-export function proxy (target: Object, sourceKey: string, key: string) {
-  sharedPropertyDefinition.get = function proxyGetter () {
-    return this[sourceKey][key]
-  }
-  sharedPropertyDefinition.set = function proxySetter (val) {
-    this[sourceKey][key] = val
-  }
-  // 设置 把key代理到target上
-  Object.defineProperty(target, key, sharedPropertyDefinition)
-}
-```
 
 
 
 ## initMethods
+
+1. 遍历methods校验所有的key必须是数组
+2. 校验当前key不能和props以及Vue实例上的已有方法重叠
+3. 将当前方法挂载到vm实例
 
 ```js
 function initMethods (vm: Component, methods: Object) {
@@ -137,16 +132,17 @@ function initMethods (vm: Component, methods: Object) {
 }
 ```
 
-1. 遍历methods校验所有的key必须是数组
-2. 校验当前key不能和props以及Vue实例上的已有方法重叠
-3. 将当前方法挂载到vm实例
-
 ## initData
+
+1. 获取data数据
+2. 校验data返回的是否是对象
+3. 遍历data中的数据，校验是否和methods、props中的key是否相同
+4. 给data做数据响应式
 
 ```js
 function initData (vm: Component) {
   let data = vm.$options.data
-  // 获取data数据
+  // 获取data数据，data是一个函数，返回一个对象
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
@@ -192,12 +188,9 @@ function initData (vm: Component) {
 }
 ```
 
-1. 获取data数据
-2. 校验data返回的是否是对象
-3. 遍历data中的数据，校验是否和methods、props中的key是否相同
-4. 给data做数据响应式
-
 ### observe
+
+处理响应式
 
 ```js
 /**
@@ -256,6 +249,7 @@ export class Observer {
       // 设置数组响应式
       this.observeArray(value)
     } else {
+      // 处理对象响应式
       this.walk(value)
     }
   }
@@ -329,7 +323,7 @@ export function defineReactive (
           childOb.dep.depend()
           // 如果是数组
           if (Array.isArray(value)) {
-            // 数组响应式
+            // 处理数组选项为对象的情况，对其进行依赖收集，因为前面的处理都没有办法对数组项为对象的元素进行依赖收集
             dependArray(value)
           }
         }
@@ -337,7 +331,7 @@ export function defineReactive (
       return value
     },
     set: function reactiveSetter (newVal) {
-      // 获取到就得val
+      // 获取到旧val
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
       // 如果新的val与旧的val相同，直接return ，不触发响应式
@@ -365,32 +359,83 @@ export function defineReactive (
 }
 ```
 
-### dependArray
+### 数组响应式
+
+1. 缓存原生方法
+2. 执行def()，拦截 arrayMethods.method 的访问
+3. 执行原生方法
+4. 新值元素设置数据响应式
 
 ```js
-function dependArray (value: Array<any>) {
-  for (let e, i = 0, l = value.length; i < l; i++) {
-    e = value[i]
-    e && e.__ob__ && e.__ob__.dep.depend()
-    if (Array.isArray(e)) {
-      dependArray(e)
+/*
+ * 定义arrayMethods对象，用于增强Array原型
+ * 动态访问Array原型的方法
+ */
+
+import { def } from '../util/index'
+
+const arrayProto = Array.prototype
+export const arrayMethods = Object.create(arrayProto)
+
+const methodsToPatch = [
+  'push',
+  'pop',
+  'shift',
+  'unshift',
+  'splice',
+  'sort',
+  'reverse'
+]
+
+/**
+ * 拦截以上七个方法并触发事件
+ */
+methodsToPatch.forEach(function (method) {
+  // 缓存原生方法
+  const original = arrayProto[method]
+  // def 就是 Object.defineProperty，拦截 arrayMethods.method 的访问
+  def(arrayMethods, method, function mutator (...args) {
+    // 执行原生方法
+    const result = original.apply(this, args)
+    const ob = this.__ob__
+    let inserted
+    // 'push'、'unshift'、'splice'三个方法会新增元素
+    switch (method) {
+      case 'push':
+      case 'unshift':
+        inserted = args
+        break
+      case 'splice':
+        inserted = args.slice(2)
+        break
     }
-  }
-}
+    // 新值元素设置数据响应式
+    if (inserted) ob.observeArray(inserted)
+    // 通知更新
+    ob.dep.notify()
+    return result
+  })
+})
+
 ```
 
-### 数组响应式
+### 
 
 #### protoAugment
 
+设置target._proto__ = src
+
+把数组对象的原型设置为arrayMethods
+
 ```js
 /**
-*通过拦截增加目标对象或数组
-*原型链使用__proto__
+* 通过拦截增加目标对象或数组
+* 原型链使用__proto__（非标准属性）
+* 因为有的浏览器对象是没有__proto__这个属性的，兼容性问题
 */
 function protoAugment (target, src: Object) {
   /* eslint-disable no-proto */
-  target.__proto__ = src
+  target.__proto__ = src// src为增强的原型方法，支持数据响应式
   /* eslint-enable no-proto */
 }
 ```
@@ -412,6 +457,10 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
 
 #### def
 
+将增强的七个数组方法，覆盖到数组的原型上，由此拦截了原有的数组方法，也增强了响应式能力
+
+`**Object.defineProperty()**` 方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。
+
 ```js
 export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
   Object.defineProperty(obj, key, {
@@ -423,9 +472,16 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
 }
 ```
 
+### 
+
 ### Dep
 
 ```js
+/*
+* 一个dep对应一个obj.key
+* 在数据响应式的get时会收集依赖，每个dep所对应的watcher
+* 在数据响应式set时会通知dep中的watcher去执行update更新方法
+*/
 export default class Dep {
   static target: ?Watcher;
   id: number;
@@ -435,7 +491,7 @@ export default class Dep {
     this.id = uid++
     this.subs = []
   }
-
+	// dep中添加watcher
   addSub (sub: Watcher) {
     this.subs.push(sub)
   }
@@ -443,13 +499,13 @@ export default class Dep {
   removeSub (sub: Watcher) {
     remove(this.subs, sub)
   }
-
+	// watcher中添加dep
   depend () {
     if (Dep.target) {
       Dep.target.addDep(this)
     }
   }
-
+	// 通知更新，遍历执行每个watcher的update
   notify () {
     // stabilize the subscriber list first
     const subs = this.subs.slice()
@@ -464,6 +520,251 @@ export default class Dep {
     }
   }
 }
+
+// The current target watcher being evaluated.
+// This is globally unique because only one watcher
+// can be evaluated at a time.
+Dep.target = null
+const targetStack = []
+// 在需要进行依赖收集的时候调用，设置 Dep.target = watcher
+export function pushTarget (target: ?Watcher) {
+  targetStack.push(target)
+  Dep.target = target
+}
+// 依赖收集结束调用，设置 Dep.target = null
+export function popTarget () {
+  targetStack.pop()
+  Dep.target = targetStack[targetStack.length - 1]
+}
+```
+
+### Watcher
+
+```js
+
+/**
+ * 一个组件一个watcher或者一个表达式一个watcher
+ * 当数据更新时会被触发，或者访问访问 this.computedProperty 时也会触发 watcher
+ */
+export default class Watcher {
+  vm: Component;
+  expression: string;
+  cb: Function;
+  id: number;
+  deep: boolean;
+  user: boolean;
+  lazy: boolean;
+  sync: boolean;
+  dirty: boolean;
+  active: boolean;
+  deps: Array<Dep>;
+  newDeps: Array<Dep>;
+  depIds: SimpleSet;
+  newDepIds: SimpleSet;
+  before: ?Function;
+  getter: Function;
+  value: any;
+
+  constructor (
+    vm: Component,
+    expOrFn: string | Function,
+    cb: Function,
+    options?: ?Object,
+    isRenderWatcher?: boolean
+  ) {
+    this.vm = vm
+    if (isRenderWatcher) {
+      vm._watcher = this
+    }
+    vm._watchers.push(this)
+    // options
+    if (options) {
+      this.deep = !!options.deep
+      this.user = !!options.user
+      this.lazy = !!options.lazy
+      this.sync = !!options.sync
+      this.before = options.before
+    } else {
+      this.deep = this.user = this.lazy = this.sync = false
+    }
+    this.cb = cb
+    this.id = ++uid // uid for batching
+    this.active = true
+    this.dirty = this.lazy // for lazy watchers
+    this.deps = []
+    this.newDeps = []
+    this.depIds = new Set()
+    this.newDepIds = new Set()
+    this.expression = process.env.NODE_ENV !== 'production'
+      ? expOrFn.toString()
+      : ''
+    // parse expression for getter
+    if (typeof expOrFn === 'function') {
+      this.getter = expOrFn
+    } else {
+      this.getter = parsePath(expOrFn)
+      if (!this.getter) {
+        this.getter = noop
+        process.env.NODE_ENV !== 'production' && warn(
+          `Failed watching path: "${expOrFn}" ` +
+          'Watcher only accepts simple dot-delimited paths. ' +
+          'For full control, use a function instead.',
+          vm
+        )
+      }
+    }
+    this.value = this.lazy
+      ? undefined
+      : this.get()
+  }
+
+  /**
+   * Evaluate the getter, and re-collect dependencies.
+   */
+  get () {
+    pushTarget(this)
+    let value
+    const vm = this.vm
+    try {
+      value = this.getter.call(vm, vm)
+    } catch (e) {
+      if (this.user) {
+        handleError(e, vm, `getter for watcher "${this.expression}"`)
+      } else {
+        throw e
+      }
+    } finally {
+      // "touch" every property so they are all tracked as
+      // dependencies for deep watching
+      if (this.deep) {
+        traverse(value)
+      }
+      popTarget()
+      this.cleanupDeps()
+    }
+    return value
+  }
+
+  /**
+   * Add a dependency to this directive.
+   */
+  addDep (dep: Dep) {
+    const id = dep.id
+    if (!this.newDepIds.has(id)) {
+      this.newDepIds.add(id)
+      this.newDeps.push(dep)
+      if (!this.depIds.has(id)) {
+        dep.addSub(this)
+      }
+    }
+  }
+
+  /**
+   * Clean up for dependency collection.
+   */
+  cleanupDeps () {
+    let i = this.deps.length
+    while (i--) {
+      const dep = this.deps[i]
+      if (!this.newDepIds.has(dep.id)) {
+        dep.removeSub(this)
+      }
+    }
+    let tmp = this.depIds
+    this.depIds = this.newDepIds
+    this.newDepIds = tmp
+    this.newDepIds.clear()
+    tmp = this.deps
+    this.deps = this.newDeps
+    this.newDeps = tmp
+    this.newDeps.length = 0
+  }
+
+  /**
+   * Subscriber interface.
+   * Will be called when a dependency changes.
+   */
+  update () {
+    /* istanbul ignore else */
+    if (this.lazy) {
+      this.dirty = true
+    } else if (this.sync) {
+      this.run()
+    } else {
+      queueWatcher(this)
+    }
+  }
+
+  /**
+   * Scheduler job interface.
+   * Will be called by the scheduler.
+   */
+  run () {
+    if (this.active) {
+      const value = this.get()
+      if (
+        value !== this.value ||
+        // Deep watchers and watchers on Object/Arrays should fire even
+        // when the value is the same, because the value may
+        // have mutated.
+        isObject(value) ||
+        this.deep
+      ) {
+        // set new value
+        const oldValue = this.value
+        this.value = value
+        if (this.user) {
+          try {
+            this.cb.call(this.vm, value, oldValue)
+          } catch (e) {
+            handleError(e, this.vm, `callback for watcher "${this.expression}"`)
+          }
+        } else {
+          this.cb.call(this.vm, value, oldValue)
+        }
+      }
+    }
+  }
+
+  /**
+   * Evaluate the value of the watcher.
+   * This only gets called for lazy watchers.
+   */
+  evaluate () {
+    this.value = this.get()
+    this.dirty = false
+  }
+
+  /**
+   * Depend on all deps collected by this watcher.
+   */
+  depend () {
+    let i = this.deps.length
+    while (i--) {
+      this.deps[i].depend()
+    }
+  }
+
+  /**
+   * Remove self from all dependencies' subscriber list.
+   */
+  teardown () {
+    if (this.active) {
+      // remove self from vm's watcher list
+      // this is a somewhat expensive operation so we skip it
+      // if the vm is being destroyed.
+      if (!this.vm._isBeingDestroyed) {
+        remove(this.vm._watchers, this)
+      }
+      let i = this.deps.length
+      while (i--) {
+        this.deps[i].removeSub(this)
+      }
+      this.active = false
+    }
+  }
+}
+
 ```
 
 
@@ -471,6 +772,7 @@ export default class Dep {
 ## initComputed
 
 ```js
+const computedWatcherOptions = { lazy: true }
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
   const watchers = vm._computedWatchers = Object.create(null)
@@ -493,7 +795,7 @@ function initComputed (vm: Component, computed: Object) {
         vm,
         getter || noop,
         noop,
-        computedWatcherOptions
+        computedWatcherOptions // 默认为懒执行不可更改的{ lazy: true }
       )
     }
 
@@ -569,5 +871,24 @@ Vue.prototype.$watch = function (
       watcher.teardown()
     }
   }
+```
+
+## proxy
+
+代理，主要用于设置props、data、computed中的每个key代理到vm实例上
+
+允许以`this.key`的方式来访问配置项中的参数和方法
+
+```js
+export function proxy (target: Object, sourceKey: string, key: string) {
+  sharedPropertyDefinition.get = function proxyGetter () {
+    return this[sourceKey][key]
+  }
+  sharedPropertyDefinition.set = function proxySetter (val) {
+    this[sourceKey][key] = val
+  }
+  // 设置 把key代理到target上
+  Object.defineProperty(target, key, sharedPropertyDefinition)
+}
 ```
 
