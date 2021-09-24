@@ -190,7 +190,9 @@ function initData (vm: Component) {
 
 ### observe
 
-处理响应式
+1. 判断传入value是否为object格式，不是直接return
+2. 判断是否已经是响应式数据，若是，直接返回实例
+3. 执行new Observer(value)给数据做数据响应式处理
 
 ```js
 /**
@@ -199,11 +201,13 @@ function initData (vm: Component) {
 *如果已经有观察者返回已有的观察者。
 */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
+  // 如果value不是对象的话直接return
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+    // 如果原型上有 '__ob__'表示已经是响应式
     //如果已有观察者实例，则返回
     ob = value.__ob__
   } else if (
@@ -213,7 +217,9 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     Object.isExtensible(value) &&
     !value._isVue
   ) {
+    // 如果是不是响应式的数据
     // 添加新的观察者实例
+    // ⚠️注意，这里的value只有类型是对象时才会进行数据响应式处理
     ob = new Observer(value)
   }
   if (asRootData && ob) {
@@ -225,6 +231,12 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 
 ### Observer
 
+1. 定义一个dep大管家
+2. 给传入的数据增加`__ob__`
+3. 如果是数组的情况，增强数组中会修改数组本身的七个方法，让其可以被拦截
+4. 如果value是数组，遍历数组，如果数组中有对象，使其执行observe()方法
+5. 执行walk()方法，遍历所有的key值，执行响应式处理的defineReactive()方法
+
 ```js
 export class Observer {
   value: any;
@@ -233,23 +245,24 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
-    //实例化一个dep
+    //实例化一个dep管家
     this.dep = new Dep()
     this.vmCount = 0
-    // 给value添加__ob__
+    // 定义一个属性。 给value添加__ob__
     def(value, '__ob__', this)
     if (Array.isArray(value)) {//如果value为数组
-      if (hasProto) {//如果有__proto__
+      // 如果有__proto__，浏览器兼容性问题，一些低版本浏览器是没有__proto__属性的
+      if (hasProto) {
         // 覆盖数组的原型
         protoAugment(value, arrayMethods)
       } else {
         // 给数组定义七个方法
         copyAugment(value, arrayMethods, arrayKeys)
       }
-      // 设置数组响应式
+      // 设置数组响应式,如果数组中的项为对象
       this.observeArray(value)
     } else {
-      // 处理对象响应式
+      // 处理响应式
       this.walk(value)
     }
   }
@@ -270,6 +283,7 @@ export class Observer {
    * 观察Array项的列表。
    */
   observeArray (items: Array<any>) {
+    //遍历数组，把每个key在传入处理响应式的observe方法中，如果数组元素中有项为对象的数据做响应式处理
     for (let i = 0, l = items.length; i < l; i++) {
       observe(items[i])
     }
@@ -278,6 +292,25 @@ export class Observer {
 ```
 
 ### defineReactive
+
+1. 创建一个dep小管家，一个key对应一个dep，用于收集该字段的依赖
+2. 判断属性若不可修改或不可删除则不能做响应式处理
+3. 记录 getter 和 setter，获取val
+4. 递归执行observe，让深层的元素也做数据响应式
+5. 响应式核心内容：get和set
+   1. get拦截对key的读取操作
+      1. 执行getter或者返回val
+      2. Dep.target 是类的静态属性（Watcher）
+      3. dep.depend()为依赖收集，在dep中添加watcher，也在watcher中添加dep
+      4. 如果有嵌套对象(也是观察者对象),也做依赖收集
+      5. 如果是数组，触发数组的响应式
+      6. 为数组项为对象的项添加依赖
+   2. set拦截对key的写入操作
+      1. 如果新值和旧值相同，则不需要出发更新，直接return
+      2. 如果只有getter没有setter则为只读属性，直接return
+      3. 执行setter，设置新值
+      4. 对新值做响应式处理
+      5. 执行dep中的通知更新
 
 ```js
 //定义对象上的响应性属性。
@@ -342,7 +375,7 @@ export function defineReactive (
       if (process.env.NODE_ENV !== 'production' && customSetter) {
         customSetter()
       }
-      // #7981: for accessor properties without setter
+      // 只读属性，直接return ，不触发响应式
       if (getter && !setter) return
       
       if (setter) {
@@ -356,6 +389,21 @@ export function defineReactive (
       dep.notify()
     }
   })
+}
+
+
+/**
+*当数组被访问时，收集数组元素的依赖项，因为
+*不能像属性getter那样截取数组元素访问。
+*/
+function dependArray (value: Array<any>) {
+  for ( let i = 0; i < value.length; i++) {
+    let e = value[i]
+    e && e.__ob__ && e.__ob__.dep.depend()
+    if (Array.isArray(e)) {
+      dependArray(e)
+    }
+  }
 }
 ```
 
@@ -430,8 +478,6 @@ methodsToPatch.forEach(function (method) {
 ```js
 /**
 * 通过拦截增加目标对象或数组
-* 原型链使用__proto__（非标准属性）
-* 因为有的浏览器对象是没有__proto__这个属性的，兼容性问题
 */
 function protoAugment (target, src: Object) {
   /* eslint-disable no-proto */
@@ -444,8 +490,10 @@ function protoAugment (target, src: Object) {
 
 ```js
 /**
-*通过定义来增加目标对象或数组
-*隐藏属性。
+* 通过定义来增加目标对象或数组
+* 隐藏属性。
+* 原型链使用__proto__（非标准属性）
+* 因为有的浏览器对象是没有__proto__这个属性的，兼容性问题
 */
 function copyAugment (target: Object, src: Object, keys: Array<string>) {
   for (let i = 0, l = keys.length; i < l; i++) {
@@ -459,7 +507,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
 
 将增强的七个数组方法，覆盖到数组的原型上，由此拦截了原有的数组方法，也增强了响应式能力
 
-`**Object.defineProperty()**` 方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。
+`Object.defineProperty()` 方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。
 
 ```js
 export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
@@ -495,7 +543,7 @@ export default class Dep {
   addSub (sub: Watcher) {
     this.subs.push(sub)
   }
-
+// dep中删除watcher
   removeSub (sub: Watcher) {
     remove(this.subs, sub)
   }
@@ -539,6 +587,8 @@ export function popTarget () {
 ```
 
 ### Watcher
+
+
 
 ```js
 

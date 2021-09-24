@@ -55,9 +55,19 @@
 
 ### 入口
 
+首先是需要Vue的入口函数，主要是两种方式：
+
 vue入口函数的代码
 
-1. 在配置文件中 `scripts/config.js`
+1. 在执行`npm run dev`时后面有相关的配置参数
+
+   ```js
+   "dev": "rollup -w -c scripts/config.js --sourcemap --environment TARGET:web-full-dev",
+   ```
+
+   以上命令中可知传递的参数为 `TARGET:web-full-dev`
+
+   在配置文件中 `scripts/config.js`找到web-full-dev，所有就找到Vue的入口处所在位置
 
    ```js
    // Runtime+compiler development build (Browser) 
@@ -80,9 +90,11 @@ vue入口函数的代码
 
 2. 写一个测试文件在new Vue处打断点
 
+   这样的方式找到的是Vue的构造函数被定义的位置
+
    ![image-20210917174224390](..images/vue/image-20210917174715626.png) ![image-20210917174715626](/Users/weiwentao/Library/Application Support/typora-user-images/image-20210917174715626.png)
 
-   如图所示就是Vue构造函数被定义的位置
+   
 
 /src/core/instance/index.js
 
@@ -97,10 +109,10 @@ function Vue (options) {
 }
 
 initMixin(Vue) // 挂载_init方法
-stateMixin(Vue)
-eventsMixin(Vue)
-lifecycleMixin(Vue)
-renderMixin(Vue)
+stateMixin(Vue) //实例方法初始化：$set、$delete、$watch
+eventsMixin(Vue)	//事件相关：$on、$once、$off、$emit
+lifecycleMixin(Vue) //生命周期：_update、$forceUpdate、$destroy
+renderMixin(Vue) //渲染相关：$nextTick、_render
 ```
 
 Vue初始化的时候只执行了_init方法，而这个\_init方法是在initMixin(Vue)中被定义挂载到Vue.prototype中
@@ -192,4 +204,5 @@ Vue.prototype._init = function (options?: Object) {
 - initState(vm) 处理props、methods、computed、watch并执行data的响应式
 - initProvide(vm) 将组件的provide挂载到vm._provided
 -  callHook(vm, 'created')执行生命周期钩子
+-   vm.$mount(vm.$options.el) 执行挂载
 
