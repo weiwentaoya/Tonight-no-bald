@@ -1,8 +1,220 @@
+# 前言
+
+在阅读响应式原理之前，我们需要先梳理一下整体的流程，对订阅发布模式有个简单的流程梳理，便于对后续的阅读有更深的理解
+
+首先我们考虑，new Vue()都做了什么事情，从这里出发
+
+![vue数据响应式流程](../images/vue数据响应式流程.png)
+
+# $mount()
+
+## 包装$mount()
+
+1. 保存原有的$mount
+2. 如果options参数内有render函数，直接执行保存的$mount方法，不经过下面流程
+3. 没有render函数的话先去判断有没有template模版
+4. 没有template的情况下去解析el中的内容
+5. 当获取到template后通过compileToFunctions()方法获取render方法，挂载到options
+6. 执行保存的$mount方法
+
+```js
+// src/platforms/web/entry-runtime-with-compiler.js
+
+// 保存原先的$mount，包装一层函数,所以此处并不是$mount真正被定义的位置，但是我们先看其如何进行包装
+const mount = Vue.prototype.$mount
+Vue.prototype.$mount = function (
+  el?: string | Element,
+  hydrating?: boolean
+): Component {
+  el = el && query(el)
+
+  /* istanbul ignore if */
+  if (el === document.body || el === document.documentElement) {
+    process.env.NODE_ENV !== 'production' && warn(
+      `Do not mount Vue to <html> or <body> - mount to normal elements instead.`
+    )
+    return this
+  }
+
+  const options = this.$options
+  // 解析模板/el并转换为渲染函数
+  // 当render函数不存在的话
+  if (!options.render) {
+    let template = options.template
+    // 如果存在template模版
+    if (template) {
+      if (typeof template === 'string') {
+        if (template.charAt(0) === '#') {
+          // 根据id获取内容
+          template = idToTemplate(template)
+          /* istanbul ignore if */
+          if (process.env.NODE_ENV !== 'production' && !template) {
+            warn(
+              `Template element not found or is empty: ${options.template}`,
+              this
+            )
+          }
+        }
+        // 如果存在nodeType，直接获取innerHTML内容
+      } else if (template.nodeType) {
+        template = template.innerHTML
+      } else {
+        if (process.env.NODE_ENV !== 'production') {
+          warn('invalid template option:' + template, this)
+        }
+        return this
+      }
+    } else if (el) {
+      // 如果不存在template，存在el，就解析el获取template内容
+      template = getOuterHTML(el)
+    }
+    // 如果经过上述处理，获取到template
+    if (template) {
+      /* istanbul ignore if */
+      if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+        mark('compile')
+      }
+			// 调用compileToFunctions()方法，获取dender函数，挂载到options
+      const { render, staticRenderFns } = compileToFunctions(template, {
+        outputSourceRange: process.env.NODE_ENV !== 'production',
+        shouldDecodeNewlines,
+        shouldDecodeNewlinesForHref,
+        delimiters: options.delimiters,
+        comments: options.comments
+      }, this)
+      options.render = render
+      options.staticRenderFns = staticRenderFns
+
+      /* istanbul ignore if */
+      if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+        mark('compile end')
+        measure(`vue ${this._name} compile`, 'compile', 'compile end')
+      }
+    }
+  }
+  // 执行真正的$mount()方法
+  return mount.call(this, el, hydrating)
+}
+```
+
+## 定义$mount()
+
+1. 挂载平台相关补丁，vue有两个平台，web和weex，web平台中是patch函数
+2. 定义mount方法，执行了mountComponent()
+
+```js
+// src/platforms/web/runtime/index.js
+
+// 挂载相关平台补丁
+Vue.prototype.__patch__ = inBrowser ? patch : noop
+
+// mount方法定义
+Vue.prototype.$mount = function (
+  el?: string | Element,
+  hydrating?: boolean
+): Component {
+  el = el && inBrowser ? query(el) : undefined
+  return mountComponent(this, el, hydrating)
+}
+
+```
+
+## mountComponent
+
+1. 如果$options中 没有render函数，则创建一个空的VNode
+2. 执行生命周期钩子 `beforeMount`
+3. 定义updateComponent更新函数
+4. 创建观察者，传入updateComponent函数
+5. 执行生命周期钩子 `mounted`
+
+```js
+// src/core/instance/lifecycle.js
+
+export function mountComponent (
+  vm: Component,
+  el: ?Element,
+  hydrating?: boolean
+): Component {
+  vm.$el = el
+  // 如果$options中 没有render函数，则render函数会被覆盖为一个用来创建 空的VNode 的函数
+  if (!vm.$options.render) {
+    vm.$options.render = createEmptyVNode
+    if (process.env.NODE_ENV !== 'production') {
+      /* istanbul ignore if */
+      if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
+        vm.$options.el || el) {
+        warn(
+          'You are using the runtime-only build of Vue where the template ' +
+          'compiler is not available. Either pre-compile the templates into ' +
+          'render functions, or use the compiler-included build.',
+          vm
+        )
+      } else {
+        warn(
+          'Failed to mount component: template or render function not defined.',
+          vm
+        )
+      }
+    }
+  }
+  // 生命周期钩子beforeMount
+  callHook(vm, 'beforeMount')
+	// 定义updateComponent更新函数，会被传出入Watcher中
+  // _render()函数是用来生成虚拟DOM
+  // _update()函数是用虚拟DOM来生成真实DOM
+  let updateComponent
+  /* istanbul ignore if */
+  if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+    updateComponent = () => {
+      const name = vm._name
+      const id = vm._uid
+      const startTag = `vue-perf-start:${id}`
+      const endTag = `vue-perf-end:${id}`
+
+      mark(startTag)
+      const vnode = vm._render()
+      mark(endTag)
+      measure(`vue ${name} render`, startTag, endTag)
+
+      mark(startTag)
+      vm._update(vnode, hydrating)
+      mark(endTag)
+      measure(`vue ${name} patch`, startTag, endTag)
+    }
+  } else {
+    updateComponent = () => {
+      vm._update(vm._render(), hydrating)
+    }
+  }
+
+  // we set this to vm._watcher inside the watcher's constructor
+  // since the watcher's initial patch may call $forceUpdate (e.g. inside child
+  // component's mounted hook), which relies on vm._watcher being already defined
+  // 创建观察者
+  new Watcher(vm, updateComponent, noop, {
+    before () {
+      if (vm._isMounted && !vm._isDestroyed) {
+        callHook(vm, 'beforeUpdate')
+      }
+    }
+  }, true /* isRenderWatcher */)
+  hydrating = false
+
+  // manually mounted instance, call mounted on self
+  // mounted is called for render-created child components in its inserted hook
+  if (vm.$vnode == null) {
+    vm._isMounted = true
+    callHook(vm, 'mounted')
+  }
+  return vm
+}
+```
+
+
+
 # initState
 
 **响应式原理的入口**
-
-vue-dev/src/core/instance/state.js
 
 1. 初始化props
 2. 初始化methods
@@ -11,6 +223,8 @@ vue-dev/src/core/instance/state.js
 5. 初始化watch
 
 ```js
+// src/core/instance/state.js
+
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
@@ -38,6 +252,8 @@ export function initState (vm: Component) {
 4. 把当前key代理到vm上
 
 ```js
+// src/core/instance/state.js
+
 function initProps (vm: Component, propsOptions: Object) {
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
@@ -99,6 +315,8 @@ function initProps (vm: Component, propsOptions: Object) {
 3. 将当前方法挂载到vm实例
 
 ```js
+// src/core/instance/state.js
+
 function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
   for (const key in methods) {
@@ -140,6 +358,8 @@ function initMethods (vm: Component, methods: Object) {
 4. 给data做数据响应式
 
 ```js
+// src/core/instance/state.js
+
 function initData (vm: Component) {
   let data = vm.$options.data
   // 获取data数据，data是一个函数，返回一个对象
@@ -195,6 +415,8 @@ function initData (vm: Component) {
 3. 执行new Observer(value)给数据做数据响应式处理
 
 ```js
+//  src/core/observer/index.js
+
 /**
 *尝试为一个值创建一个观察者实例，
 *如果创建成功，返回新的观察者，
@@ -238,6 +460,8 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 5. 执行walk()方法，遍历所有的key值，执行响应式处理的defineReactive()方法
 
 ```js
+//  src/core/observer/index.js
+
 export class Observer {
   value: any;
   dep: Dep;
@@ -313,6 +537,8 @@ export class Observer {
       5. 执行dep中的通知更新
 
 ```js
+//  src/core/observer/index.js
+
 //定义对象上的响应性属性。
 export function defineReactive (
   obj: Object,
@@ -415,6 +641,8 @@ function dependArray (value: Array<any>) {
 4. 新值元素设置数据响应式
 
 ```js
+// src/core/observer/array.js
+
 /*
  * 定义arrayMethods对象，用于增强Array原型
  * 动态访问Array原型的方法
@@ -476,6 +704,8 @@ methodsToPatch.forEach(function (method) {
 把数组对象的原型设置为arrayMethods
 
 ```js
+//  src/core/observer/index.js
+
 /**
 * 通过拦截增加目标对象或数组
 */
@@ -489,6 +719,8 @@ function protoAugment (target, src: Object) {
 #### copyAugment
 
 ```js
+//  src/core/observer/index.js
+
 /**
 * 通过定义来增加目标对象或数组
 * 隐藏属性。
@@ -510,6 +742,8 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
 `Object.defineProperty()` 方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性，并返回此对象。
 
 ```js
+// src/core/util/lang.js
+
 export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
   Object.defineProperty(obj, key, {
     value: val,
@@ -525,6 +759,8 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
 ### Dep
 
 ```js
+// src/core/observer/dep.js
+
 /*
 * 一个dep对应一个obj.key
 * 在数据响应式的get时会收集依赖，每个dep所对应的watcher
@@ -591,6 +827,7 @@ export function popTarget () {
 
 
 ```js
+//  src/core/observer/watcher.js
 
 /**
  * 一个组件一个watcher或者一个表达式一个watcher
@@ -617,7 +854,7 @@ export default class Watcher {
 
   constructor (
     vm: Component,
-    expOrFn: string | Function,
+    expOrFn: string | Function, //这里为更新函数 updateComponent
     cb: Function,
     options?: ?Object,
     isRenderWatcher?: boolean
@@ -650,7 +887,7 @@ export default class Watcher {
       : ''
     // parse expression for getter
     if (typeof expOrFn === 'function') {
-      this.getter = expOrFn
+      this.getter = expOrFn // 把updateComponent赋值到getter
     } else {
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
@@ -669,13 +906,17 @@ export default class Watcher {
   }
 
   /**
-   * Evaluate the getter, and re-collect dependencies.
+   * 评估getter，并重新收集依赖项。
+   * 这里执行了new Watcher时传入第二个参数updateComponent方法
+   * 当触发更新时，会执行render函数 会再次做依赖收集
    */
   get () {
+    // 开启依赖收集，在依赖收集时会判断Dep中的target
     pushTarget(this)
     let value
     const vm = this.vm
     try {
+      // 这里执行updateComponent方法
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -689,6 +930,7 @@ export default class Watcher {
       if (this.deep) {
         traverse(value)
       }
+      //删除Dep中的target，关闭依赖收集
       popTarget()
       this.cleanupDeps()
     }
@@ -700,17 +942,21 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
+    // 如果dep有则不重复添加
     if (!this.newDepIds.has(id)) {
+      // 先保存id，每次进来会判重
       this.newDepIds.add(id)
+      // 添加dep
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
+        // 同样添加watcher自己到dep
         dep.addSub(this)
       }
     }
   }
 
   /**
-   * Clean up for dependency collection.
+   * 清理依赖项
    */
   cleanupDeps () {
     let i = this.deps.length
@@ -731,16 +977,18 @@ export default class Watcher {
   }
 
   /**
-   * Subscriber interface.
-   * Will be called when a dependency changes.
+   * 当依赖项改变时将被执行。dep.notify()
    */
   update () {
     /* istanbul ignore else */
     if (this.lazy) {
-      this.dirty = true
+      //computed会有固定参数lazy，会走这里
+      this.dirty = true //这里是缓存的开关，保证每一次更新computed中的函数只执行一次
     } else if (this.sync) {
+      // 这里是同步更新。。。
       this.run()
     } else {
+      // 这里是一般情况下的更新逻辑，让watcher进入队列，通过nexttick执行
       queueWatcher(this)
     }
   }
@@ -751,7 +999,7 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
-      const value = this.get()
+      const value = this.get()//调用get
       if (
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even
@@ -764,6 +1012,7 @@ export default class Watcher {
         const oldValue = this.value
         this.value = value
         if (this.user) {
+          // 如果是自己定义的watcher，会执行传递的第三个参数，会调函数
           try {
             this.cb.call(this.vm, value, oldValue)
           } catch (e) {
@@ -777,8 +1026,8 @@ export default class Watcher {
   }
 
   /**
-   * Evaluate the value of the watcher.
-   * This only gets called for lazy watchers.
+   * 这只适用于懒执行computed。
+   * dirty的作用就是让computed再一次循环中只执行一次，每次页面更新就会设置为true
    */
   evaluate () {
     this.value = this.get()
@@ -821,14 +1070,20 @@ export default class Watcher {
 
 ## initComputed
 
+这里主要关键点是`const computedWatcherOptions = { lazy: true }`
+
+表示当前Watcher为懒执行，由Watcher的dirty控制，每次页面更新只执行一次，而methods中的方法，在页面更新中，被访问几次就会执行几次
+
 ```js
+// src/core/instance/state.js
+
 const computedWatcherOptions = { lazy: true }
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
-
+	//遍历computed选项
   for (const key in computed) {
     const userDef = computed[key]
     const getter = typeof userDef === 'function' ? userDef : userDef.get
@@ -840,7 +1095,7 @@ function initComputed (vm: Component, computed: Object) {
     }
 
     if (!isSSR) {
-      // create internal watcher for the computed property.
+      // 为computed属性创建 Watcher.
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -849,9 +1104,7 @@ function initComputed (vm: Component, computed: Object) {
       )
     }
 
-    // component-defined computed properties are already defined on the
-    // component prototype. We only need to define computed properties defined
-    // at instantiation here.
+    //这里也是代理操作，让其可以直接用this.computedKey的方式去访问
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
@@ -868,10 +1121,15 @@ function initComputed (vm: Component, computed: Object) {
 ## initWatch
 
 ```js
+// src/core/instance/state.js
+
 function initWatch (vm: Component, watch: Object) {
+  //遍历watch选项
+  //调用createWatcher
   for (const key in watch) {
     const handler = watch[key]
     if (Array.isArray(handler)) {
+      //如果是数组，遍历数组
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
       }
@@ -887,10 +1145,12 @@ function createWatcher (
   handler: any,
   options?: Object
 ) {
+    // handler是对象的话，获取选项的值
   if (isPlainObject(handler)) {
     options = handler
     handler = handler.handler
   }
+    //handler是字符串的话就是methods中的一个方法
   if (typeof handler === 'string') {
     handler = vm[handler]
   }
@@ -909,7 +1169,9 @@ Vue.prototype.$watch = function (
     }
     options = options || {}
     options.user = true
+  	//创建Watcher
     const watcher = new Watcher(vm, expOrFn, cb, options)
+    //如果设置了immediate选项，则立即执行一次回调函数
     if (options.immediate) {
       try {
         cb.call(vm, watcher.value)
@@ -917,6 +1179,7 @@ Vue.prototype.$watch = function (
         handleError(error, vm, `callback for immediate watcher "${watcher.expression}"`)
       }
     }
+  //unwatchFn用于解除监听
     return function unwatchFn () {
       watcher.teardown()
     }
@@ -929,7 +1192,11 @@ Vue.prototype.$watch = function (
 
 允许以`this.key`的方式来访问配置项中的参数和方法
 
+例如：当我们用`this.dataKey`去访问`vm.data.dataKey`就是因为这里设置了代理
+
 ```js
+// src/core/instance/state.js
+
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]

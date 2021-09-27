@@ -65,9 +65,11 @@ vue入口函数的代码
    "dev": "rollup -w -c scripts/config.js --sourcemap --environment TARGET:web-full-dev",
    ```
 
-   以上命令中可知传递的参数为 `TARGET:web-full-dev`
+   
 
-   在配置文件中 `scripts/config.js`找到web-full-dev，所有就找到Vue的入口处所在位置
+   在配置文件中`-c  scripts/config.js` 表示配置文件为scripts/config.js
+
+   `TARGET:web-full-dev` 表示打包方式为web-full-dev ，也指定了Vue的入口处所在位置
 
    ```js
    // Runtime+compiler development build (Browser) 
@@ -90,7 +92,7 @@ vue入口函数的代码
 
 2. 写一个测试文件在new Vue处打断点
 
-   这样的方式找到的是Vue的构造函数被定义的位置
+   这样的方式找到的是Vue的构造函数被定义的位置，
 
    ![image-20210917174224390](..images/vue/image-20210917174715626.png) ![image-20210917174715626](/Users/weiwentao/Library/Application Support/typora-user-images/image-20210917174715626.png)
 
