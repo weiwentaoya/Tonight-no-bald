@@ -373,10 +373,10 @@ function flushCallbacks () {
 1. 当dep的`notify()`方法被执行时就开始了异步更新
 2. 首先会通知所有的watcher执行`update()`方法
 3. watcher的`update()`方法中通过`queueWatcher(this)`将当前的watcher放入一个watcher队列
-4. 执行`nextTick(flushSchedulerQueue)`,将执行watcher队列中所有`update()`的`flushSchedulerQueue`方法通过`nextTick`放入callbacks回调函数数组中
+4. 将执行watcher队列中所有`watcher.update()`的`flushSchedulerQueue`方法通过`nextTick`放入callbacks回调函数数组中
 5. 执行`timerFunc()`根据浏览器兼容性判断执行方式，优先使用`Promise.resolve().then()`利用浏览器的微任务队列的方式去执行`flushCallbacks()`
 6. `flushCallbacks()`去遍历执行所有的callbacks数组中的`flushSchedulerQueue`方法
 7. `flushSchedulerQueue`方法去执行所有watcher的`run()`方法
 8. watcher的`run()`方法执行了watcher的`get()`方法
 9. watcher的`get()`方法又去执行了`new Watcher()`时传入的`updateComponent()`更新函数
-10. 至此旧完成了整个的异步更新
+10. 至此就完成了整个的异步更新
