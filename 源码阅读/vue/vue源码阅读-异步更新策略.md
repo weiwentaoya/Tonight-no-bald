@@ -367,7 +367,6 @@ function flushCallbacks () {
   }
 }
 ```
-
 # 总结
 
 1. 当dep的`notify()`方法被执行时就开始了异步更新
