@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    body{
+        margin: 0;
+    }
+</style>
+<body>
+    
+</body>
+<script type="module">
+    import {
+        Scene,
+        BoxGeometry,
+        MeshLambertMaterial,
+        Mesh,
+        PointLight,
+        AmbientLight,
+        OrthographicCamera,
+        WebGLRenderer,
+        SphereGeometry,
+        CylinderGeometry,
+        AxesHelper,
+        BufferGeometry,
+        BufferAttribute,
+        MeshBasicMaterial,
+        DoubleSide,
+        Vector3,
+        Color,
+        VertexColors,
+        PointsMaterial,
+        Points,
+        Line,
+        LineDashedMaterial,
+        PlaneGeometry,
+        DirectionalLight,
+        SpotLight,
+        Group,
+        ArcCurve,
+        TextureLoader,
+        ImageLoader,
+        Texture,
+        RepeatWrapping,
+        MirroredRepeatWrapping,
+        CatmullRomCurve3,
+        TubeGeometry,
+        CanvasTexture
+    } from 'https://unpkg.com/three/build/three.module.js'
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js'
+    
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 128;
+    const c = canvas.getContext('2d');
+    // 矩形区域填充背景
+    c.fillStyle = "#ff00ff";
+    c.fillRect(0, 0, 512, 128);
+    c.beginPath();
+    // 文字
+    c.beginPath();
+    c.translate(256,64);
+    c.fillStyle = "#000000"; //文本填充颜色
+    c.font = "bold 48px 宋体"; //字体样式设置
+    c.textBaseline = "middle"; //文本与fillText定义的纵坐标
+    c.textAlign = "center"; //文本居中(以fillText定义的横坐标)
+    c.fillText("🏠⌚️🎧📺📖🌲🏫🧵🚗", 0, 0);
+
+    document.body.appendChild(canvas)
+    //创建一个场景对象。
+    const scene = new Scene() 
+    
+    const texture = new CanvasTexture(canvas)
+    const geometry = new PlaneGeometry(200, 100)
+    const material = new MeshLambertMaterial({
+        map: texture
+    })
+    const mesh = new Mesh(geometry, material)
+    scene.add(mesh)
+
+    const point = new PointLight(0xffffff)
+    point.position.set(300, 300, 300)
+    scene.add(point)
+    const ambient = new AmbientLight(0x666666)
+    // 将环境光添加到场景中
+    scene.add(ambient)
+
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const k = width / height
+    const s = 200
+
+    // 初始化一个正交投影相机
+    const camera = new OrthographicCamera(-s*k, s*k, s, -s, 1, 1000)
+    // 设置相机位置
+    camera.position.set(20, 70, 200)
+    // 让相机看向场景位置
+    camera.lookAt(scene.position)
+    // 初始化渲染构造器
+    const renderer =new WebGLRenderer()
+    // 设置输出画布大小
+    renderer.setSize(width, height)
+    // 设置清除画布的颜色
+    renderer.setClearColor(0xb9d3ff, 1)
+    document.body.appendChild(renderer.domElement)
+
+    // 创建一个定长的辅助坐标系
+    const axesHelper = new AxesHelper(500)
+    scene.add(axesHelper)
+
+    function render() {
+        renderer.render(scene, camera)
+        requestAnimationFrame(render)
+    }
+    render()
+    
+    const controls = new OrbitControls(camera, renderer.domElement)
+</script>
+</html>

@@ -1,40 +1,75 @@
-# Scene(场景)
+## 模型对象旋转平移缩放
 
-```js
-const scene = new Scene() // 创建场景对象
-```
+点模型`Points`、线模型`Line`、网格模型`Mesh`等模型对象的基类都是Object3D,Object3D提供了一系列属性和方法对三维空间中的物体进行操纵。
 
-### 构造器
+### 方法
 
-Scene()
+#### 平移
 
-## 属性
+- translateX(distance : Float)沿着X轴将平移**distance**个单位。
 
-- .fog
+- translateY(distance : Float)沿着Y轴将平移**distance**个单位。
 
-  一个fog实例定义了影响场景中每个物体的雾的类型。默认为null。
+- translateZ(distance : Float)沿着Z轴将平移**distance**个单位。
 
-- .overrideMaterial
+- translateOnAxis ( axis : Vector3, distance : Float ) 沿着axis平移**distance**个单位。
 
-  如果不为空，它将强制场景中每个物体都适用这里的材质来渲染。默认为null。
+  axis -- 一个在局部空间中的标准化向量。
+  distance -- 将要平移的距离。
 
-- .autoUpdate
+  在局部空间中沿着一条轴来平移物体，假设轴已被标准化。
 
-  默认为true，若设置这个值，则渲染器会检查每一帧是否需要更新场景及其中物体的矩阵。当设为false时，你必须亲自手动维护场景中的矩阵
+- .position 获取或者设置position位移属性
 
-- .background 
+#### 旋转
 
-  若不为空，在渲染场景的时候将设置背景，且背景总是先被渲染的，可以设置一个用于clear的Color（颜色）、一个覆盖canvas的Texture（纹理），或是一个CubeTexture。默认为null
+- .rotateX ( rad : Float ) 物体绕局部空间的X轴旋转rad。
 
-## 方法
+  rad - 将要旋转的角度（以弧度来表示）。
 
-- .toJSON
+- .rotateY ( rad : Float ) 物体绕局部空间的Y轴旋转rad。
 
-  meta--包含元数据的对象，例如场景中的纹理或图片。将scene对象转换为three.js JSON Object/Scene format
+  rad - 将要旋转的角度（以弧度来表示）。
 
-- .dispose()
+- .rotateZ( rad : Float ) 物体绕局部空间的Z轴旋转rad。
 
-  清楚WebGLRenderer内部缓存的场景相关的数据
+  rad - 将要旋转的角度（以弧度来表示）。
 
-  
+- .rotateOnAxis( axis : Vector3,  rad : Float ) 在局部空间中物体绕axis轴旋转rad。
 
+  axis -- 一个在世界空间中的标准化向量。
+
+  rad - 将要旋转的角度（以弧度来表示）。
+
+- .rotateOnWorldAxis(  axis : Vector3, rad : Float ) 在世界空间中物体绕axis轴旋转rad。
+
+  axis -- 一个在世界空间中的标准化向量。
+
+  rad - 将要旋转的角度（以弧度来表示）。
+
+- .rotation和.quaternion属性
+
+### 属性
+
+- .scale: Vector3
+
+  物体的局部缩放，默认值是Vector3(1,1,1)
+
+- .position: Vector3
+
+  物体局部位置，默认值为(0,0,0)
+
+- .rotation: Euler
+
+  物体的局部旋转，以弧度表示
+
+- .quaternion: Quaternion
+
+  表示对象局部旋转的四元数
+
+## 光源对象
+
+1. 环境光`AmbientLight`
+2. 平行光`DirectionalLight`
+3. 点光源`PointLight`
+4. 聚光灯光源`SpotLight`

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    body{
+        margin: 0;
+    }
+</style>
+<body>
+    
+</body>
+<script type="module">
+    import {
+        Scene,
+        BoxGeometry,
+        MeshLambertMaterial,
+        Mesh,
+        PointLight,
+        AmbientLight,
+        OrthographicCamera,
+        WebGLRenderer,
+        SphereGeometry,
+        CylinderGeometry,
+        AxesHelper,
+        BufferGeometry,
+        BufferAttribute,
+        MeshBasicMaterial,
+        DoubleSide,
+        Vector3,
+        Color,
+        VertexColors,
+        PointsMaterial,
+        Points,
+        Line,
+        LineDashedMaterial,
+        PlaneGeometry,
+        DirectionalLight,
+        SpotLight,
+        Group,
+        ArcCurve,
+        LineCurve3,
+        CatmullRomCurve3,
+        QuadraticBezierCurve3,
+        CubicBezierCurve3,
+        LineCurve,
+        Vector2,
+        CurvePath,
+        TubeGeometry
+    } from 'https://unpkg.com/three/build/three.module.js'
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js'
+    //创建一个场景对象。
+    const scene = new Scene() 
+
+    const path = new CatmullRomCurve3([
+        new Vector3(-10, -50, -50),
+        new Vector3(10, 0, 0),
+        new Vector3(8, 50, 50),
+        new Vector3(-5, 0, 100),
+    ])
+    // const path = new LineCurve3(
+    //     new Vector3(0, 100, 0),
+    //     new Vector3(0, -100, 0),
+    // )
+    const geometry = new TubeGeometry(path, 40, 20, 200)
+    const material = new LineDashedMaterial({
+        color: 0xffff00
+    })
+    const line = new Line(geometry, material)
+    scene.add(line)
+
+    const p1 = new Vector3(-86, -36)
+    const p2 = new Vector3(-50, 0, 0)
+    const p3 = new Vector3(0, 50, 0)
+    const p4 = new Vector3(50, 0, 0)
+    const p5 = new Vector3(-86, 0, -36)
+    const line1 = new LineCurve3(p1, p2)
+    const curve = new CatmullRomCurve3([p2, p3, p4])
+    const line2 = new LineCurve3(p4, p5)
+    const curvePath = new CurvePath()
+    curvePath.curves.push(line1, curve, line2)
+    const geometry2 = new TubeGeometry(curvePath, 40, 20, 200)
+    geometry2.translate(150, 0, 0)
+
+    const material2 =new LineDashedMaterial({
+        color: 0x00ff00
+    }) 
+    const lineCurve = new Line(geometry2, material2)
+    scene.add(lineCurve)
+    const ambient = new AmbientLight(0x333333)
+    // 将环境光添加到场景中
+    scene.add(ambient)
+
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const k = width / height
+    const s = 200
+
+    // 初始化一个正交投影相机
+    const camera = new OrthographicCamera(-s*k, s*k, s, -s, 1, 1000)
+    // 设置相机位置
+    camera.position.set(0, 20, 200)
+    // 让相机看向场景位置
+    camera.lookAt(scene.position)
+    // 初始化渲染构造器
+    const renderer =new WebGLRenderer()
+    // 设置输出画布大小
+    renderer.setSize(width, height)
+    // 设置清除画布的颜色
+    renderer.setClearColor(0xb9d3ff, 1)
+    document.body.appendChild(renderer.domElement)
+
+    // 创建一个定长的辅助坐标系
+    const axesHelper = new AxesHelper(500)
+    scene.add(axesHelper)
+
+    function render() {
+        renderer.render(scene, camera)
+        requestAnimationFrame(render)
+    }
+    render()
+    const controls = new OrbitControls(camera, renderer.domElement)
+</script>
+</html>
