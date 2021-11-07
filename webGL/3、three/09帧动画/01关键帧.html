@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    body{
+        margin: 0;
+    }
+</style>
+<body>
+    
+</body>
+<script type="module">
+    import {
+        Scene,
+        BoxGeometry,
+        MeshLambertMaterial,
+        Mesh,
+        PointLight,
+        AmbientLight,
+        OrthographicCamera,
+        PerspectiveCamera,
+        WebGLRenderer,
+        SphereGeometry,
+        CylinderGeometry,
+        AxesHelper,
+        BufferGeometry,
+        BufferAttribute,
+        MeshBasicMaterial,
+        DoubleSide,
+        Vector3,
+        Color,
+        VertexColors,
+        PointsMaterial,
+        Points,
+        Line,
+        LineDashedMaterial,
+        PlaneGeometry,
+        DirectionalLight,
+        SpotLight,
+        Group,
+        ArcCurve,
+        TextureLoader,
+        ImageLoader,
+        Texture,
+        SpriteMaterial,
+        Sprite,
+        AnimationClip,
+        AnimationMixer,
+        KeyFrameTrack,
+
+    } from 'https://unpkg.com/three/build/three.module.js'
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js'
+    //创建一个场景对象。
+    const scene = new Scene() 
+    const group = new Group()
+    scene.add(group)
+    const geometrySphere = new SphereGeometry(10)
+    const materialSphere = new MeshBasicMaterial({
+        color: 0xffff00
+    })
+    const meshSphere = new Mesh(geometrySphere, materialSphere)
+    group.add(meshSphere)
+
+    const geometryBox = new BoxGeometry(30,10,10)
+    const materialBox = new MeshBasicMaterial({
+        color: 0xff0000
+    })
+    const meshBox = new Mesh(geometryBox, materialBox)
+    meshBox.position.set(30, 0, 0)
+    meshBox.name='box'
+    group.add(meshBox)
+
+    const posTrack = new KeyFrameTrack(
+        'box.position',
+        [0,10],
+        [30, 0, 0, 100, 0 ,0]
+    )
+    const colorKF = new KeyFrameTrack(
+        'box.material.color',
+        [0,10],
+        [1,0,0,0,0,1]
+    )
+    
+    const clip = new AnimationClip(
+        'box',
+        20,
+        [posTrack,colorKF]
+    )
+    const mixer = new AnimationMixer(group)
+    const animationAction = mixer.clipAction(clip)
+    animationAction.timeScale = 20
+    animationAction.play()
+    
+
+    const point = new PointLight(0xffffff)
+    point.position.set(500, 500, 500)
+    scene.add(point)
+    const ambient = new AmbientLight(0x333333)
+    // 将环境光添加到场景中
+    scene.add(ambient)
+
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const camera = new PerspectiveCamera(80, width/height, 1, 1000) 
+    camera.lookAt(scene.position)
+    camera.position.set(40, 80, 100)
+
+    // 初始化渲染构造器
+    const renderer =new WebGLRenderer()
+    // 设置输出画布大小
+    renderer.setSize(width, height)
+    // 设置清除画布的颜色
+    renderer.setClearColor(0x999999, 1)
+    document.body.appendChild(renderer.domElement)
+
+    // 创建一个定长的辅助坐标系
+    const axesHelper = new AxesHelper(500)
+    scene.add(axesHelper)
+
+    function render() {
+        renderer.render(scene, camera)
+        requestAnimationFrame(render)
+    }
+    render()
+    
+    const controls = new OrbitControls(camera, renderer.domElement)
+</script>
+</html>

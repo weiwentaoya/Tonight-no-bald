@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    body{
+        margin: 0;
+    }
+</style>
+<body>
+    <button>暂停/继续</button>
+</body>
+<script type="module">
+    import {
+        Scene,
+        BoxGeometry,
+        MeshLambertMaterial,
+        Mesh,
+        PointLight,
+        AmbientLight,
+        OrthographicCamera,
+        PerspectiveCamera,
+        WebGLRenderer,
+        SphereGeometry,
+        CylinderGeometry,
+        AxesHelper,
+        BufferGeometry,
+        BufferAttribute,
+        MeshBasicMaterial,
+        DoubleSide,
+        Vector3,
+        Color,
+        VertexColors,
+        PointsMaterial,
+        Points,
+        Line,
+        LineDashedMaterial,
+        PlaneGeometry,
+        DirectionalLight,
+        SpotLight,
+        Group,
+        ArcCurve,
+        TextureLoader,
+        ImageLoader,
+        Texture,
+        SpriteMaterial,
+        Sprite,
+        AnimationClip,
+        AnimationMixer,
+        
+    } from 'https://unpkg.com/three/build/three.module.js'
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r122/examples/jsm/controls/OrbitControls.js'
+    //创建一个场景对象。
+    const scene = new Scene() 
+    
+    
+
+    const point = new PointLight(0xffffff)
+    point.position.set(500, 500, 500)
+    scene.add(point)
+    const ambient = new AmbientLight(0x333333)
+    // 将环境光添加到场景中
+    scene.add(ambient)
+
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const camera = new PerspectiveCamera(80, width/height, 1, 1000) 
+    camera.lookAt(scene.position)
+    camera.position.set(40, 80, 100)
+
+    // 初始化渲染构造器
+    const renderer =new WebGLRenderer()
+    // 设置输出画布大小
+    renderer.setSize(width, height)
+    // 设置清除画布的颜色
+    renderer.setClearColor(0x999999, 1)
+    document.body.appendChild(renderer.domElement)
+
+    // 创建一个定长的辅助坐标系
+    const axesHelper = new AxesHelper(500)
+    scene.add(axesHelper)
+
+    function render() {
+        renderer.render(scene, camera)
+        requestAnimationFrame(render)
+    }
+    render()
+    
+    const controls = new OrbitControls(camera, renderer.domElement)
+</script>
+</html>
