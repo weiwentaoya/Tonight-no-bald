@@ -1,6 +1,7 @@
 import Vue from "vue";
 import VueRouter from "./vue-router";
 import Home from "../views/Home.vue";
+import About from "../views/About.vue";
 
 Vue.use(VueRouter);
 
@@ -9,6 +10,11 @@ const routes = [
     path: "/",
     name: "Home",
     component: Home
+  },
+  {
+    path: "/about",
+    name: "About",
+    component: About
   },
   {
     path: "/bus",
@@ -35,22 +41,22 @@ const routes = [
     name: "form",
     component: () => import( "../views/Form.vue")
   },
-  {
-    path: "/link",
-    name: "link",
-    component: () => import( "../views/Link.vue"),
-    children:[
-      {
-        path: "/link/info",
-        name: "info",
-        component: {render(h){return h('div','link children link-info page')}}
-      },
-    ]
-  }
+  // {
+  //   path: "/link",
+  //   name: "link",
+  //   component: () => import( "../views/Link.vue"),
+  //   children:[
+  //     {
+  //       path: "/link/info",
+  //       name: "info",
+  //       component: {render(h){return h('div','link children link-info page')}}
+  //     },
+  //   ]
+  // }
 ];
 
 const router = new VueRouter({
-  mode: "history",
+  mode: "hash",
   routes
 });
 
