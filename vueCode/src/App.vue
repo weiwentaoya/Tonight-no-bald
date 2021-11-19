@@ -31,7 +31,7 @@ export default {
     display: flex;
     justify-content: center;
   .link{
-    margin: 0 4px;
+    margin: 0 4px ;
   }
 
   }
