@@ -10,8 +10,10 @@
     <div id="app">
         <p>{{count}}</p>
         <p>{{count}}</p>
+        <input v-model="count">
         <p v-text="count"></p>
         <p v-html="desc"></p>
+        <button @click="add">add</button>
     </div>
 </body>
 <!-- <script src="../../node_modules/vue/dist/vue.js"></script> -->
@@ -22,12 +24,18 @@
         data: {
             count: 1,
             desc: '<span style="color:red">这里是内容详情</span>'
-        }
+        },
+        methods: {
+            add(){
+                console.log('add',this.count);
+                this.count++
+            }
+        },
     })
     
-    setInterval(() => {
-        app.count++
+    // setInterval(() => {
+    //     app.count++
         
-    }, 1000);
+    // }, 1000);
 </script>
 </html>

@@ -1,12 +1,22 @@
-function proxy(vm, obj) {
-    Object.keys(obj).forEach(key=>{
+function proxy(vm) {
+    Object.keys(vm.$data).forEach(key=>{
         Object.defineProperty(vm, key,{
             get(){
-                return obj[key]
+                return vm.$data[key]
             },
             set(val){
-                obj[key]= val
+                vm.$data[key]= val
             }
+        })
+    })
+    Object.keys(vm.$methods).forEach(key=>{
+        console.log(key,vm.$methods[key]);
+        
+        Object.defineProperty(vm, key,{
+            get(){
+                return vm.$methods[key]
+            },
+            
         })
     })
 }
@@ -15,11 +25,12 @@ class Vue {
         this.$options = options
         this.$el = document.querySelector(options.el)
         this.$data = options.data
+        this.$methods = options.methods
         this.init()
     }
     init() {
         observe(this.$data)
-        proxy(this, this.$data)
+        proxy(this)
         new Compile(this, this.$el)
     }
 }
@@ -84,12 +95,10 @@ class Compile{
     update(el, exp, funType){
         const fn = this[funType+'Update']
         fn&&fn(el, this.$vm[exp])
-
-        new Watcher(this.$vm, exp, (val)=>{
+        new Watcher(this.$vm, exp, function (val) {
             fn(el, val)
         })
     }
-
     compileElement(el){
         Array.from(el.attributes).forEach(attr=>{
             const attrName = attr.name
@@ -97,6 +106,10 @@ class Compile{
             if (attrName.startsWith('v-')) {
                 const dir = attrName.slice(2)
                 dir&&this[dir](el, exp)
+            }else if(attrName.startsWith('@')){
+                const type = attrName.slice(1)
+                const fn = this.$vm[exp].bind(this.$vm)
+                el.addEventListener(type,fn)
             }
         })
     }
@@ -109,7 +122,18 @@ class Compile{
     html(el, exp ){
         this.update(el, exp, 'html')
     }
-
+    model (el, exp ){
+        this.update(el, exp, 'input')
+        const fn =function (val) {
+            this.$vm[exp] = val
+        }.bind(this)
+        el.addEventListener('input',function (e) {
+            fn(e.target.value)
+        })
+    }
+    inputUpdate(el, val){
+        el.value = val
+    }
     htmlUpdate(el, val){
         el.innerHTML = val
     }
@@ -138,11 +162,11 @@ class Watcher {
         this.$key = key
         this.updateFn = updateFn
         Dep.target = this
-        this.$vm[this.$key]
+        vm[key]
         Dep.target = null
 
     }
     update(){
-        this.updateFn.call(this.$vm,this.$vm[this.$key])
+        this.updateFn(this.$vm[ this.$key])
     }
 }
