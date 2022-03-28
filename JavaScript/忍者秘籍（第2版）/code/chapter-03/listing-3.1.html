@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>A simple callback example</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="../assert.css">
+  <!-- <script src="../assert.js"></script> -->
+</head>
+<body>
+  <script>
+    var text = 'Domo arigato!';
+    console.log("Before defining functions");
+
+    function useless(ninjaCallback) {
+      console.log("In useless function");
+      return ninjaCallback();
+    }
+
+    function getText() {
+      console.log("In getText function");
+      return text;
+    }
+    
+    console.log("Before making all the calls");
+    
+    assert(
+      useless(getText) === text, "The useless function works! " + text);
+           
+    console.log("After the calls have been made"); 
+    
+    function assert(value, text){
+      value&&console.log(text)
+    }
+  </script>
+</body>
+</html>
