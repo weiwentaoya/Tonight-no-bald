@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<script type="importmap">
+  {
+    "imports": {
+      "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+    }
+  }
+</script>
+
+<body>
+  <h3>vue 设计与实现</h3>
+  <h1 id="app"></h1>
+  <p id="des"></p>
+  <button id="btn1">switch</button>
+  <button id="btn2">change</button>
+</body>
+<script src="./01-前置内容/01-Proxy&Reflect.js"></script>
+<script type='module'>
+
+  // import { createApp , reactive, effect} from 'vue'
+  // const obj = reactive({
+  //   msg:'hello word'
+  // })
+  // effect(() => {
+  //   document.getElementById('app').innerHTML = obj.msg
+  // })
+  // setTimeout(() => {
+  //   obj.msg = 'hello vue3'
+  // }, 1000);
+
+
+  // import { reactive, effect } from './02-响应系统/reactive.js'
+  // const obj = reactive({
+  //   show: true,
+  //   count: 1,
+  //   msg: 'hello word'
+  // })
+  // effect(() => {
+  //   console.log(obj.count)
+  // }, {
+  //   scheduler (fn) {
+  //     setTimeout(() => {
+  //       fn()
+  //     }, 3000)
+  //   }
+  // })
+  // effect(function fn1 () {
+  //   document.getElementById('app').innerHTML = obj.show ? obj.msg : 'not value'
+  // })
+  // effect(function fn2 () {
+  //   document.getElementById('des').innerHTML = obj.msg
+  // })
+
+
+  // document.getElementById('btn1').addEventListener('click', () => {
+  //   obj.count++
+  // })
+  // document.getElementById('btn2').addEventListener('click', () => {
+  //   obj.count++
+  // })
+
+
+
+
+  // jobQueue
+  // const jobQueue = new Set()
+  // let isFlush
+  // function flushQueue (params) {
+  //   if (isFlush) return
+  //   isFlush = true
+  //   Promise.resolve().then(() => {
+  //     jobQueue.forEach(fn => fn())
+  //     isFlush = false
+  //   })
+  // }
+
+
+  // import { reactive, effect } from './02-响应系统/reactive.js'
+  // const obj = reactive({
+  //   show: true,
+  //   count: 1,
+  //   msg: 'hello word'
+  // })
+  // effect(() => {
+  //   console.log(obj.count)
+  // }, {
+  //   scheduler (fn) {
+  //     jobQueue.add(fn)
+  //     flushQueue()
+  //   }
+  // })
+
+  // setTimeout(() => {
+  //   obj.count++
+  //   obj.count++
+  //   obj.count++
+  //   obj.count++
+  //   obj.count++
+  // }, 2000)
+
+
+
+
+  // import { reactive, effect } from './02-响应系统/reactive.js'
+  // const obj = reactive({
+  //   show: true,
+  //   count: 1,
+  //   msg: 'hello word'
+  // })
+
+
+
+
+
+
+  // computed
+  import { reactive, effect } from './02-响应系统/reactive.js'
+  import { computed } from './02-响应系统/computed.js'
+  const obj = reactive({
+    show: true,
+    count: 1,
+    msg: 'hello word'
+  })
+  const content = computed(() => obj.show ? obj.count : obj.msg)
+
+  document.getElementById('btn1').addEventListener('click', () => {
+    obj.count++
+  })
+  document.getElementById('btn2').addEventListener('click', () => {
+    console.log(content.value)
+  })
+</script>
+
+</html>
